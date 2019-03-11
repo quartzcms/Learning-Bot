@@ -1,0 +1,17 @@
+.glyphicon {
+	font-family: 'Glyphicons Halflings' !important;
+	padding-right: 8px;
+}
+
+body .progress {
+    height: auto;
+}
+
+body .progress .progress-bar {
+    padding: 7px 0;
+	opacity: 0.8;
+}
+
+button {
+	opacity: 0.8;
+}

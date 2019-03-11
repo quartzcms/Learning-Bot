@@ -1,0 +1,14 @@
+{
+    "authors": [
+        {
+            "name": "Alexandre Lefebvre",
+            "email": "alex@quartzcms.com",
+            "homepage": "https://www.quartzcms.ca",
+            "role": "Developer"
+        }
+    ],
+    
+    "require": {
+        "google/cloud": "^0.36.0"
+    }
+}
