@@ -1,39 +1,51 @@
 <?php
 	ini_set('display_errors', 1);
-	session_start();
 	include('../../config.php');
+	include('../sessions/save_sessions.php');
+	include('../sessions/use_sessions.php');
+	if(isset($_POST['language'])){
+		write_session('language', $_POST['language']);
+	}
 	
 	/* CAPTCHA : if failed no answer */
-	if($_SERVER['REMOTE_ADDR'] == $server_ip || (isset($_POST['bot']) && $_POST['bot'] == 1)){ $_SESSION['captcha'] = '15'; }
-	if(!isset($_SESSION['captcha']) || $_SESSION['captcha'] != '15'){echo json_encode(['response' => '', 'analyse' => array('', 'words_found' => array(), 'pattern_chosen' => 'No pattern found (empty captcha)', 'none', array(), '', 'empty_', 'will_learn' => '', 'already_said' => 'no')]); exit;}else{$_SESSION['captcha'] = '15';}
+	if($_SERVER['REMOTE_ADDR'] == $server_ip || (isset($_POST['bot']) && $_POST['bot'] == 1)){ write_session('captcha', '15'); }
+	if(!use_session('captcha') || use_session('captcha') != '15'){echo json_encode(['response' => '', 'analyse' => array('', 'words_found' => array(), 'pattern_chosen' => 'No pattern found (empty captcha)', 'none', array(), '', 'empty_', 'will_learn' => '', 'already_said' => 'no')]); exit;}else{write_session('captcha', '15');}
 	$type_bot = $_POST['type'];
-	if(!isset($_SESSION['count_response_'.$type_bot])){ $_SESSION['count_response_'.$type_bot] = 0; } $_SESSION['count_response_'.$type_bot]++;
-	if(!isset($_SESSION['links_'.$type_bot])){
+	if(!use_session('count_response_'.$type_bot)){ write_session('count_response_'.$type_bot, 0); } 
+	$count_response = use_session('count_response_'.$type_bot);
+	write_session('count_response_'.$type_bot, $count_response + 1);
+	if(!use_session('links_'.$type_bot)){
 		$accepted = array('other', 'nom', 'ver', 'adj');
+		$new_table = array();
 		foreach($accepted as $key => $value) {
-			$_SESSION['links_'.$type_bot][$value] = []; 
+			$new_table[$value] = array();
 		}
+		write_session('links_'.$type_bot, $new_table);
 	}
 	
-	if(!isset($_SESSION['last_question_'.$type_bot])){ $_SESSION['last_question_'.$type_bot] = 0; }
-	if(!isset($_SESSION['last_question_sentence_'.$type_bot])){ $_SESSION['last_question_sentence_'.$type_bot] = ''; }
-	if(!isset($_SESSION['used_id_'.$type_bot])){ $_SESSION['used_id_'.$type_bot] = []; }
-	if(!isset($_SESSION['note_'.$type_bot])){ $_SESSION['note_'.$type_bot] = []; }
+	if(!use_session('last_question_'.$type_bot)){ write_session('last_question_'.$type_bot, 0); }
+	if(!use_session('last_question_sentence_'.$type_bot)){ write_session('last_question_sentence_'.$type_bot, ''); }
+	if(!use_session('used_id_'.$type_bot)){ write_session('used_id_'.$type_bot, array()); }
+	if(!use_session('note_'.$type_bot)){ write_session('note_'.$type_bot, array()); }
 	$already_said = 'no';
 	$trigger_verb = '';
-	if($_SESSION['last_question_'.$type_bot] == 1){
+	if(use_session('last_question_'.$type_bot) == 1){
 		$trigger_verb = 'learn';
-		$_SESSION['last_question_'.$type_bot] = 0;
+		write_session('last_question_'.$type_bot, 0);
 	}
 	
-	if($_SESSION['count_response_'.$type_bot] > 20){
-		$_SESSION['used_id_'.$type_bot] = [];
-		$_SESSION['note_'.$type_bot] = [];
+	if(use_session('count_response_'.$type_bot) > 20){
+		write_session('used_id_'.$type_bot, array());
+		write_session('note_'.$type_bot, array());
 	}
 	
-	$_SESSION['note_'.$type_bot][$_SESSION['count_response_'.$type_bot]] = '';
-
-	if(isset($_POST['question']) && isset($_SESSION['language']) && $_SESSION['language'] != 'fr' && $google_translate == 1) {
+	write_session('note_'.$type_bot, array(use_session('count_response_'.$type_bot) => ''));
+	
+	if(isset($_POST['question']) && !empty($_POST['question'])){
+		$natural_language_question = $_POST['question'];
+	}
+	
+	if(isset($_POST['question']) && !empty($_POST['question']) && use_session('language') && use_session('language') != 'fr' && $google_translate == 1) {
 		$post_values = [
 			'translate' => $_POST['question'],
 			'language' => 'fr',
@@ -50,11 +62,10 @@
 	
 	$append_data = '';
 	$wiki_later = 0;
-	if($google_natural_language == 1) {
+	if($google_natural_language == 1 && isset($natural_language_question) && !empty($natural_language_question)) {
 		$post_values = [
-			'text' => $_POST['question']
+			'text' => $natural_language_question
 		];
-		
 		$ch = curl_init($url."demo/google/natural_language/api.php");
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $post_values);
@@ -63,8 +74,8 @@
 		curl_close($ch);
 		
 		$wiki_lang = '';
-		if(isset($_SESSION['language'])) {
-			$wiki_lang = $_SESSION['language'].'.';
+		if(use_session('language')) {
+			$wiki_lang = use_session('language').'.';
 		} else {
 			$wiki_lang = 'fr.';
 		}
@@ -73,14 +84,17 @@
 			$result = json_decode($response, true); 
 			
 			$description = array();
+			
 			foreach($result as $key => $value){
 				if(strpos($result[$key], ' ') === false) {
 					$data = file_get_contents('https://'.$wiki_lang.'wikipedia.org/w/api.php?action=opensearch&search='.$result[$key].'&limit=1&format=json');
 					$data = json_decode($data, true);
-					if(isset($data[2][0]) && !empty($data[2][0])) { $description[] = $data[2][0]; }
+					if(isset($data[2][0]) && !empty($data[2][0]) && substr($data[2][0], -1) == '.') { 
+						$description[] = $data[2][0];
+						break; 
+					}
 				}
 			}
-			
 			if(!empty($description)){
 				$append_data = ' '. implode(' ', $description); 
 			}
@@ -98,7 +112,7 @@
 	$words_kept = '';
 	$words_kept_array = array();
 	$freecard = 0;
-	if(isset($_POST['question'])) {
+	if(isset($_POST['question']) && !empty($_POST['question'])) {
 		$reason = $_POST['question'];
 		$_POST['question'] = trim($_POST['question'], ' ');
 		$_POST['question'] = str_replace('-t', ' t', $_POST['question']);
@@ -233,15 +247,18 @@
 		}
 		
 		$accepted = array('other', 'nom', 'ver', 'adj');
+		$new_table = array();
 		foreach($accepted as $key => $value) {
 			if(isset($build_memory[strtoupper($value)])) {
 				foreach($build_memory[strtoupper($value)] as $word_key => $word_value){
-					if(!in_array($word_value['ortho'], $_SESSION['links_'.$type_bot][$value])){
-						$_SESSION['links_'.$type_bot][$value][] = $word_value['ortho'];
+					$array_= use_session('links_'.$type_bot);
+					if(isset($array_[$value]) && !in_array($word_value['ortho'], $array_[$value])){
+						$new_table[$value] = array($word_value['ortho']);
 					}
 				}
 			}
 		}
+		write_session('links_'.$type_bot, $new_table);
 		
 		$groups = array('adj', 'adv', 'art', 'aux', 'con', 'lia', 'nom', 'ono', 'other', 'pre', 'pro', 'ver', 'adj_dem', 'adj_ind', 'adj_int', 'adj_num', 'adj_pos', 'art_def', 'art_inf', 'pro_dem', 'pro_ind', 'pro_int', 'pro_per', 'pro_pos', 'pro_rel');
 		foreach($groups as $value){
@@ -342,16 +359,17 @@
 			if(!empty($query4)){
 				$query_used = '';
 				$query_links = '';
-				if(!empty($_SESSION['used_id_'.$type_bot])){
-					$query_used .= ' AND id NOT IN ('.implode(',', $_SESSION['used_id_'.$type_bot]).')';
+				if(use_session('used_id_'.$type_bot)){
+					$query_used .= ' AND id NOT IN ('.implode(',', use_session('used_id_'.$type_bot)).')';
 				}
 				
 				$links = array();
 				$accepted = array('other', 'nom', 'ver', 'adj');
 				foreach($accepted as $key1 => $value1) {
-					if(isset($_SESSION['links_'.$type_bot][$value1]) && !empty($_SESSION['links_'.$type_bot][$value1])){
-						foreach($_SESSION['links_'.$type_bot][$value1] as $key => $value){
-							$links[] = $value1.' LIKE \'%'.addslashes($_SESSION['links_'.$type_bot][$value1][$key]).'%\'';
+					$array_ = use_session('links_'.$type_bot);
+					if(isset($array_[$value1]) && !empty($array_[$value1])){
+						foreach($array_[$value1] as $key => $value){
+							$links[] = $value1.' LIKE \'%'.addslashes($array_[$value1][$key]).'%\'';
 						}
 					}
 				}
@@ -375,7 +393,7 @@
 			$data = mysqli_fetch_assoc($memory_query);
 			
 			if(mysqli_num_rows($memory_query) > 0){
-				$_SESSION['used_id_'.$type_bot][] = $data['id'];
+				write_session('used_id_'.$type_bot, array($data['id']));
 				$randWords = rand(1, 5);
 				
 				if(!empty($data)){
@@ -396,10 +414,10 @@
 			}
 		}
 		
-		if(in_array($new_sentence, $_SESSION['note_'.$type_bot])){
+		if(in_array($new_sentence, use_session('note_'.$type_bot))){
 			$already_said = 'yes';
 		} else {
-			$_SESSION['note_'.$type_bot][$_SESSION['count_response_'.$type_bot]] = $new_sentence;	
+			write_session('note_'.$type_bot, array(use_session('count_response_'.$type_bot) => $new_sentence));
 		}
 		/*
 		function verify_grammar($kept_ones, $tag_split_value, $tag_split2, $tags, $key, $response_temp) {
@@ -509,7 +527,7 @@
 			$reorder_array = array();
 			$sentence_order = array();
 			$modele = array();
-			if(isset($_SESSION['part']) && $_SESSION['part'] == true) {
+			if(use_session('part') && use_session('part') == true) {
 				/////// MAKE SURE ALL THE TAGS HAVE DIFFERENT NAMES
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other,aux,pro_per**1,ver**1,adv+,art_def,art_def+,nom**1,adj+**1,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other,adv+,aux,pro_per**1,ver**1,art_ind,nom**1,adj+**1,question';
@@ -535,7 +553,7 @@
 				$modele[] = 'pro_per|pro_dem|pro_ind|nom,aux**1,ver**2,dot';
 				$modele[] = 'adv+,aux,pro_per**1,ver**1,question';
 				
-				$_SESSION['part'] = false;
+				write_session('part', false);
 			} elseif ($action[$rand] == 'rep') {
 				$modele[] = 'art_def|adj_num|adj_pos,other,adj+,adv+,ver**4,pro_per**1,art_def,art_def+,nom|other**1,question';
 				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux**2,pro_per,adj,art_def,art_def+,nom**1,question';
@@ -818,10 +836,10 @@
 					
 					$response = str_replace('\' ','\'', implode(' ', $response));
 					
-					if(isset($_SESSION['language']) && $_SESSION['language'] != 'fr' && $google_translate == 1) {
+					if(use_session('language') && use_session('language') != 'fr' && $google_translate == 1) {
 						$post_values = [
 							'translate' => $response,
-							'language' => $_SESSION['language'],
+							'language' => use_session('language')
 						];
 						
 						$ch = curl_init($url."demo/google/translate/api.php");
@@ -841,27 +859,27 @@
 					
 					/* if this response is a question */
 					if(strpos($response, '?') !== false){
-						$_SESSION['last_question_'.$type_bot] = 1;
-						$_SESSION['last_question_sentence_'.$type_bot] = ucfirst($response);
+						write_session('last_question_'.$type_bot, 1);
+						write_session('last_question_sentence_'.$type_bot, ucfirst($response));
 					}
 					
 					if($_POST['nojson'] == 1){
 						echo $response;
 					} else {
-						echo json_encode(['response' => $response, 'temp memory '.$_SESSION['count_response_'.$type_bot], 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern', 'already_said' => $already_said, 'will_learn' => $_SESSION['last_question_sentence_'.$type_bot], 'new_sentence' => $new_sentence)]);
+						echo json_encode(['response' => $response.$append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
 					}
 				} else {
 					if($_POST['nojson'] == 1){
 						
 					} else {
-						echo json_encode(['response' => '', 'temp memory '.$_SESSION['count_response_'.$type_bot], 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern empty_response', 'already_said' => $already_said, 'will_learn' => $_SESSION['last_question_sentence_'.$type_bot], 'new_sentence' => $new_sentence)]);
+						echo json_encode(['response' => $append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern empty_response', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
 					}
 				}
 			} else {
 				if($_POST['nojson'] == 1){
 						
 				} else {
-					echo json_encode(['response' => '', 'temp memory '.$_SESSION['count_response_'.$type_bot], 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern no_sentence_order', 'already_said' => $already_said, 'will_learn' => $_SESSION['last_question_sentence_'.$type_bot], 'new_sentence' => $new_sentence)]);
+					echo json_encode(['response' => $append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern no_sentence_order', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
 				}
 			}
 		} else {
@@ -887,10 +905,10 @@
 				
 				$pattern = str_replace('\' ','\'', implode(' ', $pattern));
 				
-				if(isset($_SESSION['language']) && $_SESSION['language'] != 'fr' && $google_translate == 1) {
+				if(use_session('language') && use_session('language') != 'fr' && $google_translate == 1) {
 					$post_values = [
 						'translate' => $pattern,
-						'language' => $_SESSION['language'],
+						'language' => use_session('language')
 					];
 					
 					$ch = curl_init($url."demo/google/translate/api.php");
@@ -910,30 +928,32 @@
 				
 				/* if this response is a question */
 				if(strpos($pattern, '?') !== false){
-					$_SESSION['last_question_'.$type_bot] = 1;
-					$_SESSION['last_question_sentence_'.$type_bot] = $pattern;
+					write_session('last_question_'.$type_bot, 1);
+					write_session('last_question_sentence_'.$type_bot, $pattern);
 				}
 				
 				if($_POST['nojson'] == 1){
-					echo $pattern;	
+					echo $pattern.$append_data;	
 				} else {
-					echo json_encode(['response' => $pattern, 'temp memory '.$_SESSION['count_response_'.$type_bot], 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => $pattern_chosen, $action[$rand], $question_array, $words_kept, 'pattern', 'will_learn' => $_SESSION['last_question_sentence_'.$type_bot], 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
+					echo json_encode(['response' => $pattern.$append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => $pattern_chosen, $action[$rand], $question_array, $words_kept, 'pattern', 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
 				}				
 			} else {
 				if($_POST['nojson'] == 1){
 					
 				} else {
-					echo json_encode(['response' => '', 'temp memory '.$_SESSION['count_response_'.$type_bot], 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $action[$rand], $question_array, $words_kept, 'pattern empty_pattern', 'will_learn' => $_SESSION['last_question_sentence_'.$type_bot], 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
+					echo json_encode(['response' => $append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $action[$rand], $question_array, $words_kept, 'pattern empty_pattern', 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
 				}
 			}
 		}
 	}
 	
-	if($_SESSION['count_response_'.$type_bot] > 20){
+	if(use_session('count_response_'.$type_bot) > 20){
 		$accepted = array('other', 'nom', 'ver', 'adj');
+		$new_table = array();
 		foreach($accepted as $key => $value) {
-			$_SESSION['links_'.$type_bot][$value] = []; 
+			 $new_table[$value] = array();
 		}
-		$_SESSION['count_response_'.$type_bot] = 0;
+		write_session('links_'.$type_bot, $new_table);
+		write_session('count_response_'.$type_bot, 0);
 	}
 ?>

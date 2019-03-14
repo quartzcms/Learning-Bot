@@ -1,34 +1,35 @@
 <?php
 ini_set('display_errors', 1);
-session_start();
+include(dirname(__FILE__).'/../sessions/save_sessions.php');
+include(dirname(__FILE__).'/../sessions/use_sessions.php');
 // Execute this cron task every minute to send to the AI an human like wiipedia sentence
 // * * * * * cd /path/to/project/root && PHP cron-task.php 1>> /dev/null 2>&1
 include(dirname(__FILE__).'/../../config.php');
 $connexion = mysqli_connect($al_host, $al_user, $al_password, $al_db_name);
 mysqli_set_charset($connexion, 'utf8');
-
-if(!isset($_SESSION['already_one'])) { $_SESSION['already_one'] = 1; }
+$link_one = use_session('links_one');
+if(!use_session('already_one')) { write_session('already_one', 1); }
 $accepted = array('other', 'nom');
-if(isset($_SESSION['links_one'])) {
+if(use_session('links_one')) {
 	$detect_empty = 0;
 	foreach($accepted as $key1 => $value1) {
-		if(isset($_SESSION['links_one'][$value1]) && empty($_SESSION['links_one'][$value1])){
+		if(isset($link_one[$value1]) && empty($link_one[$value1])){
 			$detect_empty = 1;
 		}
 	}
 	if($detect_empty == 0) {
-		$_SESSION['already_one'] = 0;
+		write_session('already_one', 0);
 	} else {
-		$_SESSION['already_one'] = 1;
+		write_session('already_one', 1);
 	}
 }
 
-if($_SESSION['already_one'] = 0){
+if(use_session('already_one') == 0){
 	$links = array();
 	foreach($accepted as $key1 => $value1) {
-		if(isset($_SESSION['links_one'][$value1]) && !empty($_SESSION['links_one'][$value1])){
-			foreach($_SESSION['links_one'][$value1] as $key => $value){
-				$links[] = 'human LIKE \'%'.addslashes($_SESSION['links_one'][$value1][$key]).'%\'';
+		if(isset($link_one[$value1]) && !empty($link_one[$value1])){
+			foreach($link_one[$value1] as $key => $value){
+				$links[] = 'human LIKE \'%'.addslashes($link_one[$value1][$key]).'%\'';
 			}
 		}
 	}
@@ -37,7 +38,7 @@ if($_SESSION['already_one'] = 0){
 		$query_links .= implode(' COLLATE utf8_bin AND ', $links);
 	}
 		
-	$query = 'WHERE ('.$query_links.') AND (pattern LIKE \'%{%\' AND pattern LIKE \'%}%\')';
+	$query = 'WHERE ('.$query_links.')';
 	
 	//$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one ".$query." AND wikipedia != '' AND ip = '".$_SERVER['REMOTE_ADDR']."' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
 	$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one ".$query." AND wikipedia != '' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));

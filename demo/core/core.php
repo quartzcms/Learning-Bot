@@ -139,9 +139,8 @@ class core {
 			!empty($this->pattern_learn)
 		){
 			$memory_insert = 1;
-			//$insert = mysqli_query($this->connexion, "INSERT INTO ai_memory_".$this->type_bot." (".strtolower(implode(',', array_keys($this->data_to_insert))).", human, pattern, question, keywords, wikipedia, ip) VALUES ('".strtolower(implode('\',\'', array_values($this->data_to_insert)))."', '".addslashes($this->pattern_sentence)."', '".addslashes($this->pattern_learn)."', '".addslashes($_SESSION['last_question_sentence_'.$this->type_bot])."', '". json_encode($_SESSION['links_'.$this->type_bot], JSON_UNESCAPED_UNICODE)."', '".addslashes($append_data)."', '".$_SERVER['REMOTE_ADDR']."')") or die (mysqli_error($this->connexion));
-			$insert = mysqli_query($this->connexion, "INSERT INTO ai_memory_".$this->type_bot." (".strtolower(implode(',', array_keys($this->data_to_insert))).", human, pattern, question, keywords, wikipedia, ip) VALUES ('".strtolower(implode('\',\'', array_values($this->data_to_insert)))."', '".addslashes($this->pattern_sentence)."', '".addslashes($this->pattern_learn)."', '".addslashes($_SESSION['last_question_sentence_'.$this->type_bot])."', '". json_encode($_SESSION['links_'.$this->type_bot], JSON_UNESCAPED_UNICODE)."', '".addslashes($append_data)."', '255.255.255.255')") or die (mysqli_error($this->connexion));
-			$_SESSION['last_question_sentence_'.$this->type_bot] = '';
+			$insert = mysqli_query($this->connexion, "INSERT INTO ai_memory_".$this->type_bot." (".strtolower(implode(',', array_keys($this->data_to_insert))).", human, pattern, question, keywords, wikipedia, ip) VALUES ('".strtolower(implode('\',\'', array_values($this->data_to_insert)))."', '".addslashes($this->pattern_sentence)."', '".addslashes($this->pattern_learn)."', '".addslashes(use_session('last_question_sentence_'.$this->type_bot))."', '". json_encode(use_session('links_'.$this->type_bot), JSON_UNESCAPED_UNICODE)."', '".addslashes($append_data)."', '255.255.255.255')") or die (mysqli_error($this->connexion));
+			write_session('last_question_sentence_'.$this->type_bot, '');
 		}
 		
 		return array(
