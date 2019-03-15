@@ -39,7 +39,9 @@
 		write_session('note_'.$type_bot, array());
 	}
 	
-	write_session('note_'.$type_bot, array(use_session('count_response_'.$type_bot) => ''));
+	$bot_notes = use_session('note_'.$type_bot);
+	$bot_notes[use_session('count_response_'.$type_bot)] = '';
+	write_session('note_'.$type_bot, $bot_notes);
 	
 	if(isset($_POST['question']) && !empty($_POST['question'])){
 		$natural_language_question = $_POST['question'];
@@ -57,10 +59,10 @@
 		
 		$response = curl_exec($ch);
 		curl_close($ch);
-		if(!empty($response)) { $result = json_decode($response, true); $_POST['question'] = $result['translated_text']; }
+		if(!empty($response)) { $result = json_decode($response, true); $_POST['question'] = html_entity_decode($result['translated_text'], ENT_QUOTES); }
 	}
-	
 	$append_data = '';
+	$appendToResponse = '';
 	$wiki_later = 0;
 	if($google_natural_language == 1 && isset($natural_language_question) && !empty($natural_language_question)) {
 		$post_values = [
@@ -90,13 +92,14 @@
 					$data = file_get_contents('https://'.$wiki_lang.'wikipedia.org/w/api.php?action=opensearch&search='.$result[$key].'&limit=1&format=json');
 					$data = json_decode($data, true);
 					if(isset($data[2][0]) && !empty($data[2][0]) && substr($data[2][0], -1) == '.') { 
-						$description[] = $data[2][0];
+						$description[] = html_entity_decode($data[2][0], ENT_QUOTES);
 						break; 
 					}
 				}
 			}
 			if(!empty($description)){
-				$append_data = ' '. implode(' ', $description); 
+				$append_data = ' '. implode(' ', $description);
+				$appendToResponse =  $append_data;
 			}
 		} else {
 			$wiki_later = 1;
@@ -154,7 +157,7 @@
 		$data = array();
 		
 		foreach($question_array as $key => $value) {
-			$lexique_query = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes($value) . "' COLLATE utf8_bin ORDER BY FIND_IN_SET(cgram, 'CON,LIA,ART,ART:def,ART:ind,PRE,PRO:pos,PRO:per,PRO:int,PRO:ind,PRO:rel,PRO:dem,AUX,VER,ADJ,ADJ:ind,ADJ:int,ADJ:num,ADJ:pos,ADV,ONO,NOM')") or die (mysqli_error($connexion));
+			$lexique_query = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes($value) . "' COLLATE utf8_bin ORDER BY FIND_IN_SET(cgram, 'PRO:int,CON,LIA,ART,ART:def,ART:ind,PRE,PRO:pos,PRO:per,PRO:ind,PRO:rel,PRO:dem,AUX,VER,ADJ,ADJ:ind,ADJ:int,ADJ:num,ADJ:pos,ADV,ONO,NOM')") or die (mysqli_error($connexion));
 			if(mysqli_num_rows($lexique_query) > 0){
 				while ($row = mysqli_fetch_assoc($lexique_query)) { 
 					$data[md5($value)][] = $row; 
@@ -286,12 +289,18 @@
 				$data = file_get_contents('https://'.$wiki_lang.'wikipedia.org/w/api.php?action=opensearch&search='.$build_memory['NOM'][0]['ortho'].'&limit=1&format=json');
 				$data = json_decode($data, true);
 				$description = array();
-				if(isset($data[2][0]) && !empty($data[2][0])) { $description[] = $data[2][0]; }
-				
+				if(isset($data[2][0]) && !empty($data[2][0]) && substr($data[2][0], -1) == '.') { 
+					$description[] = html_entity_decode($data[2][0], ENT_QUOTES); 
+				}
 				if(!empty($description)){
-					$append_data = ' '. implode(' ', $description); 
+					$append_data = ' '. implode(' ', $description);
+					$appendToResponse = $append_data;
 				}
 			}
+		}
+		
+		if(!isset($build_memory['PRO:int'])){
+			$appendToResponse = '';
 		}
 		
 		$response_temp = array();
@@ -337,6 +346,7 @@
 		$accepted = array('nom', 'other', 'adj', 'ver');		
 		if(isset($build_memory) && !empty($build_memory) && $memory_insert != 1){
 			foreach($build_memory as $key => $value){
+				
 				if(!empty($build_memory[$key]) && isset($build_memory[$key])){
 					$build_conditions4 = array();
 					$new = array();
@@ -417,74 +427,11 @@
 		if(in_array($new_sentence, use_session('note_'.$type_bot))){
 			$already_said = 'yes';
 		} else {
-			write_session('note_'.$type_bot, array(use_session('count_response_'.$type_bot) => $new_sentence));
+			$bot_notes = use_session('note_'.$type_bot);
+			$bot_notes[use_session('count_response_'.$type_bot)] = $new_sentence;
+			write_session('note_'.$type_bot, $bot_notes);
 		}
-		/*
-		function verify_grammar($kept_ones, $tag_split_value, $tag_split2, $tags, $key, $response_temp) {
-			$tag_clean = preg_replace('/[0-9]+/', '', $tag_split_value);
-			$tag_clean = preg_replace('/[\*]+/', '', $tag_clean);
-			$tag_clean = preg_replace('/[\+]+/', '', $tag_clean);
-			
-			if($tag_clean != 'other'){
-				$position = end($tag_split2);
-				$operator = $key - $position;
-				if(isset($tags[$operator])){
-					$group_tag = $tags[$operator];
-					$group_tag = preg_replace('/[0-9]+/', '', $group_tag);
-					$group_tag = preg_replace('/[\*]+/', '', $group_tag);
-					$group_tag = preg_replace('/[\+]+/', '', $group_tag);
-					$group_tag2 = explode('|', $group_tag);
-					if(count($group_tag2) > 1){
-						foreach($group_tag2 as $index9 => $value9){
-							if($value9 != 'other'){
-								if(
-									!empty($response_temp[$value9]) &&
-									!empty($response_temp[$tag_clean]) &&
-									isset($kept_ones[$value9]) &&
-									isset($kept_ones[$tag_clean]) &&
-									isset($response_temp[$value9][$kept_ones[$value9]]['genre']) &&
-									isset($response_temp[$tag_clean][$kept_ones[$tag_clean]]['genre']) &&
-									isset($response_temp[$value9][$kept_ones[$value9]]['nombre']) &&
-									isset($response_temp[$tag_clean][$kept_ones[$tag_clean]]['nombre'])
-								){
-									if($response_temp[$value9][$kept_ones[$value9]]['genre'] != $response_temp[$tag_clean][$kept_ones[$tag_clean]]['genre']){
-										return 1;
-									}
-									if($response_temp[$value9][$kept_ones[$value9]]['nombre'] != $response_temp[$tag_clean][$kept_ones[$tag_clean]]['nombre']){
-										return 1;
-									}
-								}
-							}
-						}
-					} else {
-						if($group_tag != 'other'){
-							if(
-								!empty($response_temp[$group_tag]) &&
-								!empty($response_temp[$tag_clean]) &&
-								isset($kept_ones[$group_tag]) &&
-								isset($kept_ones[$tag_clean]) &&
-								isset($response_temp[$group_tag][$kept_ones[$group_tag]]['genre']) &&
-								isset($response_temp[$tag_clean][$kept_ones[$tag_clean]]['genre']) &&
-								isset($response_temp[$group_tag][$kept_ones[$group_tag]]['nombre']) &&
-								isset($response_temp[$tag_clean][$kept_ones[$tag_clean]]['nombre'])
-							){
-								if($response_temp[$group_tag][$kept_ones[$group_tag]]['genre'] != $response_temp[$tag_clean][$kept_ones[$tag_clean]]['genre']){
-									return 1;
-								}
-								
-								if($response_temp[$group_tag][$kept_ones[$group_tag]]['nombre'] != $response_temp[$tag_clean][$kept_ones[$tag_clean]]['nombre']){
-									return 1;
-								}
-							}
-						}
-					}
-				} else {
-					return 1;
-				}
-			}
-			
-			return 0;
-		}*/
+		
 		function verify_grammar($kept_ones2, $key, $tag, $end, $recreate, $response_temp) {
 			if($tag != 'other' && strlen($end) == 1){
 				$operator = $key - $end;
@@ -851,7 +798,7 @@
 						
 						if(!empty($data_curl)) { 
 							$result = json_decode($data_curl, true); 
-							$response = $result['translated_text']; 
+							$response = html_entity_decode($result['translated_text'], ENT_QUOTES); 
 						}
 					}
 					
@@ -863,23 +810,31 @@
 						write_session('last_question_sentence_'.$type_bot, ucfirst($response));
 					}
 					
+					if(!empty($appendToResponse)) {
+						$response = $appendToResponse;
+					}
+					
 					if($_POST['nojson'] == 1){
 						echo $response;
 					} else {
-						echo json_encode(['response' => $response.$append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
+						echo json_encode(['response' => $response, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
 					}
 				} else {
+					//if a pattern is matched but no response : output nothing
+					
 					if($_POST['nojson'] == 1){
 						
 					} else {
-						echo json_encode(['response' => $append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern empty_response', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
+						echo json_encode(['response' => '', 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern empty_response', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
 					}
 				}
 			} else {
+				//if no sentence pattern matched : output nothing
+				
 				if($_POST['nojson'] == 1){
 						
 				} else {
-					echo json_encode(['response' => $append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern no_sentence_order', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
+					echo json_encode(['response' => '', 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern no_sentence_order', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
 				}
 			}
 		} else {
@@ -920,7 +875,7 @@
 					
 					if(!empty($data_curl)) { 
 						$result = json_decode($data_curl, true); 
-						$pattern = $result['translated_text']; 
+						$pattern = html_entity_decode($result['translated_text'], ENT_QUOTES); 
 					}
 				}
 				
@@ -933,15 +888,17 @@
 				}
 				
 				if($_POST['nojson'] == 1){
-					echo $pattern.$append_data;	
+					echo $pattern;	
 				} else {
-					echo json_encode(['response' => $pattern.$append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => $pattern_chosen, $action[$rand], $question_array, $words_kept, 'pattern', 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
+					echo json_encode(['response' => $pattern, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => $pattern_chosen, $action[$rand], $question_array, $words_kept, 'pattern', 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
 				}				
 			} else {
+				//if pattern is empty : output nothing
+				
 				if($_POST['nojson'] == 1){
 					
 				} else {
-					echo json_encode(['response' => $append_data, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $action[$rand], $question_array, $words_kept, 'pattern empty_pattern', 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
+					echo json_encode(['response' => '', 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $action[$rand], $question_array, $words_kept, 'pattern empty_pattern', 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
 				}
 			}
 		}
