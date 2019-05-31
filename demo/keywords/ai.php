@@ -250,18 +250,17 @@
 		}
 		
 		$accepted = array('other', 'nom', 'ver', 'adj');
-		$new_table = array();
+		$array_= use_session('links_'.$type_bot);
 		foreach($accepted as $key => $value) {
 			if(isset($build_memory[strtoupper($value)])) {
 				foreach($build_memory[strtoupper($value)] as $word_key => $word_value){
-					$array_= use_session('links_'.$type_bot);
 					if(isset($array_[$value]) && !in_array($word_value['ortho'], $array_[$value])){
-						$new_table[$value] = array($word_value['ortho']);
+						$array_[$value][] = $word_value['ortho'];
 					}
 				}
 			}
 		}
-		write_session('links_'.$type_bot, $new_table);
+		write_session('links_'.$type_bot, $array_);
 		
 		$groups = array('adj', 'adv', 'art', 'aux', 'con', 'lia', 'nom', 'ono', 'other', 'pre', 'pro', 'ver', 'adj_dem', 'adj_ind', 'adj_int', 'adj_num', 'adj_pos', 'art_def', 'art_inf', 'pro_dem', 'pro_ind', 'pro_int', 'pro_per', 'pro_pos', 'pro_rel');
 		foreach($groups as $value){
@@ -903,7 +902,6 @@
 			}
 		}
 	}
-	
 	if(use_session('count_response_'.$type_bot) > 20){
 		$accepted = array('other', 'nom', 'ver', 'adj');
 		$new_table = array();
