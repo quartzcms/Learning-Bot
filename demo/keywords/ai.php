@@ -178,6 +178,7 @@
 							in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
+							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('PRO:pos', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'VER' || $row['cgram'] == 'AUX')
 					){
@@ -187,9 +188,9 @@
 					if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
-							in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
+							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('PRO:pos', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'ADJ')
 					){
@@ -431,7 +432,7 @@
 			write_session('note_'.$type_bot, $bot_notes);
 		}
 		
-		function verify_grammar($kept_ones2, $key, $tag, $end, $recreate, $response_temp) {
+		function verify_grammar($full_tag, $kept_ones2, $key, $tag, $end, $recreate, $response_temp) {
 			if($tag != 'other' && strlen($end) == 1){
 				$operator = $key - $end;
 				if(isset($recreate[$operator])){
@@ -450,8 +451,10 @@
 							isset($response_temp[$group_tag][$kept_ones2[$group_tag]]['nombre']) &&
 							isset($response_temp[$tag][$kept_ones2[$tag]]['nombre'])
 						){
-							if($response_temp[$group_tag][$kept_ones2[$group_tag]]['genre'] != $response_temp[$tag][$kept_ones2[$tag]]['genre']){
-								return 1;
+							if(substr_count($full_tag, '*') > 1){
+								if($response_temp[$group_tag][$kept_ones2[$group_tag]]['genre'] != $response_temp[$tag][$kept_ones2[$tag]]['genre']){
+									return 1;
+								}
 							}
 							
 							if($response_temp[$group_tag][$kept_ones2[$group_tag]]['nombre'] != $response_temp[$tag][$kept_ones2[$tag]]['nombre']){
@@ -475,74 +478,74 @@
 			$modele = array();
 			if(use_session('part') && use_session('part') == true) {
 				/////// MAKE SURE ALL THE TAGS HAVE DIFFERENT NAMES
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other,aux,pro_per**1,ver**1,adv+,art_def,art_def+,nom**1,adj+**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other,adv+,aux,pro_per**1,ver**1,art_ind,nom**1,adj+**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other,adv+,aux,pro_per**1,ver**1,art_def,art_def+,nom**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other,adv+,aux**2,ver**3,art_def,art_def+,nom**1,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other,adv+,aux**2,ver**3,art_ind,nom**1,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other,adv+,aux**2,ver**3,art_def,art_def+,nom**1,dot';				
-				$modele[] = 'aux,pro_per,adv+,ver,art_def,art_def+,nom|other**6,adj**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,pro_per**1,ver**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,pro_per**1,ver**1,question';
-				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,other,adv+,aux,pro_per**1,ver**1,question';
-				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,aux**3,ver**4,dot';
-				$modele[] = 'art_def,art_def+,nom|other**1,adv+,aux**2,ver**3,dot';
-				$modele[] = 'art_def,art_def+,nom|other**1,adj+**1,other,adv+,aux,pro_per**1,ver**1,question';
-				$modele[] = 'art_def,art_def+,nom|other**1,adv+,aux**2,ver**3,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux**2,ver**3,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux**2,ver**3,dot';
-				$modele[] = 'pro_per,aux**1,ver**2,art_def,art_def+,nom|other**1,adj+**1,dot';
-				$modele[] = 'adv+,aux,pro_per**1,ver**2,art_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per,aux**1,ver**2,art_ind,nom|other**1,adj+**1,dot';
-				$modele[] = 'adv+,aux,pro_per**1,ver**2,art_def,art_def+,nom|other**1,adj+**1,question';
-				$modele[] = 'adv+,aux,pro_per**1,ver**2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per|pro_dem|pro_ind|nom,aux**1,ver**2,dot';
-				$modele[] = 'adv+,aux,pro_per**1,ver**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per*1,ver**1,adv+,art_def,art_def+,nom**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,pro_per*1,ver**1,art_ind,nom**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,pro_per*1,ver**1,art_def,art_def+,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,ver**3,art_def,art_def+,nom**1,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,ver**3,art_ind,nom**1,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,ver**3,art_def,art_def+,nom**1,dot';				
+				$modele[] = 'aux,pro_per*1,adv+,ver**2,art_def,art_def+,nom|other**6,adj**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,pro_per*1,ver**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,pro_per*1,ver**1,question';
+				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,other,adv+,aux*4,pro_per*1,ver**1,question';
+				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,aux*3,ver**4,dot';
+				$modele[] = 'art_def,art_def+,nom|other**1,adv+,aux*2,ver**3,dot';
+				$modele[] = 'art_def,art_def+,nom|other**1,adj+**1,other,adv+,aux*4,pro_per*1,ver**1,question';
+				$modele[] = 'art_def,art_def+,nom|other**1,adv+,aux*2,ver**3,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,ver**3,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,ver**3,dot';
+				$modele[] = 'pro_per,aux*1,ver**2,art_def,art_def+,nom|other**1,adj+**1,dot';
+				$modele[] = 'adv+,aux,pro_per*1,ver**2,art_ind,nom|other**1,adj+**1,question';
+				$modele[] = 'pro_per,aux*1,ver**2,art_ind,nom|other**1,adj+**1,dot';
+				$modele[] = 'adv+,aux,pro_per*1,ver**1,art_def,art_def+,nom|other**1,adj+**1,question';
+				$modele[] = 'adv+,aux,pro_per*1,ver**1,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
+				$modele[] = 'pro_per|pro_dem|pro_ind|nom,aux*1,ver**2,dot';
+				$modele[] = 'adv+,aux,pro_per*1,ver**1,question';
 				
 				write_session('part', false);
 			} elseif ($action[$rand] == 'rep') {
-				$modele[] = 'art_def|adj_num|adj_pos,other,adj+,adv+,ver**4,pro_per**1,art_def,art_def+,nom|other**1,question';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux**2,pro_per,adj,art_def,art_def+,nom**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux|ver,pro_per**1,art_def,art_def+,nom**1,question';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux,pro_per**1,adj**4,art_ind,nom**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,pro_per**1,art_def,art_def+,nom**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per**1,art_ind,nom**1,adj**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux**1,pro_per,art_def,art_def+,nom**1,adj**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,pro_per**1,art_ind,adj,nom**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,pro_per**1,art_def,art_def+,adj+,nom**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux|ver,pro_per**1,art_ind,nom**1,question';
-				$modele[] = 'pro_per,aux,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per,aux,adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per|pro_dem|pro_ind,adv+,aux**1,adj+**1,question';
-				$modele[] = 'aux,pro_per**1,art_def,art_def+,nom|other**1,adj+**1,question';
-				$modele[] = 'aux,pro_per**1,art_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per|pro_dem|pro_ind,adv+,aux|ver**2,question';
-				$modele[] = 'pro_int,aux|ver,pro_per**1,question';
+				$modele[] = 'art_def|adj_num|adj_pos,other,adj+**2,adv+,ver**4,pro_per**1,art_def,art_def+,nom|other**1,question';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux*2,pro_per*1,adj**1,art_def,art_def+,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux|ver*2,pro_per*1,art_def,art_def+,nom**1,question';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux*2,pro_per*1,adj**1,art_ind,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,pro_per*1,art_def,art_def+,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per*1,art_ind,nom**1,adj**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per*1,art_def,art_def+,nom**1,adj**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,pro_per**1,art_ind,adj,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,pro_per**1,art_def,art_def+,adj+,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux|ver*2,pro_per*1,art_ind,nom**1,question';
+				$modele[] = 'pro_per,aux*1,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
+				$modele[] = 'pro_per,aux*1,adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
+				$modele[] = 'pro_per|pro_dem|pro_ind,adv+,aux*2,adj+**1,question';
+				$modele[] = 'aux,pro_per*1,art_def,art_def+,nom|other**1,adj+**1,question';
+				$modele[] = 'aux,pro_per*1,art_ind,nom|other**1,adj+**1,question';
+				$modele[] = 'pro_per|pro_dem|pro_ind,adv+,aux|ver*2,question';
+				$modele[] = 'pro_int,aux|ver,pro_per*1,question';
 				$modele[] = 'nom|other,question';
 				$modele[] = 'ono,question';
 			} elseif ($action[$rand] == 'sug') {
 				$modele[] = 'pro_per,ver**1,art_def|adj_num|adj_pos,other,adj+,art_def,art_def+,nom|other**1,dot';
-				$modele[] = 'pro_per,adv+,aux**2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_def,art_def+,nom**1,dot';
-				$modele[] = 'pro_per,adv+,aux**2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_ind,nom**1,dot';
+				$modele[] = 'pro_per,adv+,aux*2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_def,art_def+,nom**1,dot';
+				$modele[] = 'pro_per,adv+,aux*2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_ind,nom**1,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_ind,nom**1,adj+**1,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_def,art_def+,nom**1,adj+**1,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_ind,nom**1,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_def,art_def+,nom**1,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_ind,nom**1,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_def,art_def+,nom**1,dot';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux**2,adj+**3,art_def,art_def+,nom**1,dot';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux**2,adj+**3,art_ind,nom**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux**2,adj+**3,dot';
-				$modele[] = 'pro_per,aux|ver**1,art_def,art_def+,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per,aux|ver**1,art_def,art_def+,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per,aux**1,art_def,art_def+,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per,aux|ver**1,art_ind,nom|other**1,adj+**1,dot';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux*2,adj+**3,art_def,art_def+,nom**1,dot';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux*2,adj+**3,art_ind,nom**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,adj+**3,dot';
+				$modele[] = 'pro_per,aux|ver*1,art_def,art_def+,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per,aux|ver*1,art_def,art_def+,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per,aux*1,art_def,art_def+,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per,aux|ver*1,art_ind,nom|other**1,adj+**1,dot';
 				$modele[] = 'pro_per,aux|ver**1,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per,aux**1,art_ind,nom|other**1,adj+**1,dot';
-				$modele[] = 'art_def,art_def+,nom|other**1,adv+,aux**2,adj+**3,dot';
-				$modele[] = 'adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux**2,adj+**3,dot';
-				$modele[] = 'pro_per|pro_dem|pro_ind,adv+,aux**2,adj+,dot';
-				$modele[] = 'pro_per|pro_dem|pro_ind,aux|ver**1,dot';
+				$modele[] = 'pro_per,aux*1,art_ind,nom|other**1,adj+**1,dot';
+				$modele[] = 'art_def,art_def+,nom|other**1,adv+,aux*2,adj+**3,dot';
+				$modele[] = 'adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,adj+**3,dot';
+				$modele[] = 'pro_per|pro_dem|pro_ind,adv+,aux*2,adj+,dot';
+				$modele[] = 'pro_per|pro_dem|pro_ind,aux|ver*1,dot';
 				$modele[] = 'nom|other,dot';
 				$modele[] = 'ono,dot';
 			}
@@ -583,9 +586,12 @@
 								$not = 1;
 								break;
 							}
-							
-							if(strlen(end($tag_split2)) == 1){
-								$recreate[] = $tag_split_build[0]."**".end($tag_split2);
+							if(substr_count($tag, '*') > 0){
+								if(substr_count($tag, '*') == 1) {
+									$recreate[] = $tag_split_build[0]."*".end($tag_split2);
+								} else {
+									$recreate[] = $tag_split_build[0]."**".end($tag_split2);
+								} 
 							} else {
 								$recreate[] = $tag_split_build[0];
 							}
@@ -602,8 +608,12 @@
 										$not = 1;
 										break;
 									} else {
-										if(strlen(end($tag_split2)) == 1){
-											$recreate[] = $tag_split[0]."**".end($tag_split2);
+										if(substr_count($tag, '*') > 0){
+											if(substr_count($tag, '*') == 1) {
+												$recreate[] = $tag_split[0]."*".end($tag_split2);
+											} else {
+												$recreate[] = $tag_split[0]."**".end($tag_split2);
+											} 
 										} else {
 											$recreate[] = $tag_split[0];
 										}
@@ -614,8 +624,12 @@
 								}
 							} else {
 								$tag_split2[0] = str_replace('+', '', $tag_split2[0]);
-								if(strlen(end($tag_split2)) == 1){
-									$recreate[] = $tag_split[0]."**".end($tag_split2);
+								if(substr_count($tag, '*') > 0){
+									if(substr_count($tag, '*') == 1) {
+										$recreate[] = $tag_split[0]."*".end($tag_split2);
+									} else {
+										$recreate[] = $tag_split[0]."**".end($tag_split2);
+									}
 								} else {
 									$recreate[] = $tag_split[0];
 								}
@@ -635,7 +649,7 @@
 						} else {
 							$kept_ones2[$tag_split2[0]]++;
 						}
-						$bad_connection = verify_grammar($kept_ones2, $key7, $tag_split2[0], end($tag_split2), $recreate, $response_temp);
+						$bad_connection = verify_grammar($value7, $kept_ones2, $key7, $tag_split2[0], end($tag_split2), $recreate, $response_temp);
 						
 						if($bad_connection == 1) {
 							$toggle = 1;
