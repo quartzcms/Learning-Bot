@@ -18,8 +18,14 @@
 		if(isset($key[1])){
 			$class = $key[0].'_'.$key[1];
 			$class_var = 'class_'.$key[0].'_'.$key[1];
-			include('../types/'.$key[0].'/_'.$key[1].'.php');
-			if (class_exists($key[0].'_'.$key[1])) {
+			if(isset($key[2])){
+				$class = $key[0].'_'.$key[1].'_'.$key[2];
+				$class_var = 'class_'.$key[0].'_'.$key[1].'_'.$key[2];
+				include('../types/'.$key[0].'/_'.$key[1].'_'.$key[2].'.php');
+			} else {
+				include('../types/'.$key[0].'/_'.$key[1].'.php');
+			}
+			if (class_exists($key[0].'_'.$key[1]) || class_exists($key[0].'_'.$key[1].'_'.$key[2])) {
 				$$class_var = new $class($variables);
 			} else {
 				$$class_var = new $default($variables);

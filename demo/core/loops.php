@@ -16,6 +16,11 @@
 		'build_memory' => $build_memory 
 	);
 	extract($pro_per, EXTR_OVERWRITE);
+	$pro_per_con = isset($class_pro_per_con) ? $class_pro_per_con->loop($response, $response_temp) : array(
+		'response' => $response, 
+		'build_memory' => $build_memory 
+	);
+	extract($pro_per_con, EXTR_OVERWRITE);
 	$adv = isset($class_adv) ? $class_adv->loop($response, $response_temp) : array(
 		'response' => $response, 
 		'response_temp' => $response_temp
@@ -63,6 +68,18 @@
 		'response_temp' => $response_temp
 	);
 	extract($ver, EXTR_OVERWRITE);
+	$ver_inf = isset($class_ver_inf) ? $class_ver_inf->loop($response, $question_array, $verbs, $response_temp) : array(
+		'response' => $response,
+		'verbs' => $verbs,
+		'response_temp' => $response_temp
+	);
+	extract($ver_inf, EXTR_OVERWRITE);
+	$ver_past = isset($class_ver_past) ? $class_ver_past->loop($response, $question_array, $verbs, $response_temp) : array(
+		'response' => $response,
+		'verbs' => $verbs,
+		'response_temp' => $response_temp
+	);
+	extract($ver_past, EXTR_OVERWRITE);
 	$verb_temp = array();
 	
 	foreach($path_array as $key => $value){

@@ -44,7 +44,7 @@
 				foreach($new_question as $index => $word){
 					if($word['ortho'] == $value['ortho']){
 						for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){							
-							if(isset($new_question[$i]['cgram']) && $new_question[$i]['cgram'] == 'VER' && $new_question[$i]['cgram'] == 'AUX'){
+							if(isset($new_question[$i]['cgram']) && ($new_question[$i]['cgram'] == 'VER' || $new_question[$i]['cgram'] == 'VER:past' || $new_question[$i]['cgram'] == 'AUX')){
 								break;
 							}
 							
@@ -63,7 +63,7 @@
 						
 						if(!empty($pre_verb)) {
 							for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){
-								if(isset($new_question[$i]['cgram']) && $new_question[$i]['cgram'] == 'VER' && $new_question[$i]['cgram'] == 'AUX'){
+								if(isset($new_question[$i]['cgram']) && ($new_question[$i]['cgram'] == 'VER' || $new_question[$i]['cgram'] == 'VER:past' || $new_question[$i]['cgram'] == 'AUX')){
 									break;
 								}
 															
@@ -85,7 +85,7 @@
 						$j = 0;
 						$plural = 0;
 						for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){
-							if(isset($new_question[$i]['cgram']) && $new_question[$i]['cgram'] == 'VER' && $new_question[$i]['cgram'] == 'AUX'){
+							if(isset($new_question[$i]['cgram']) && ($new_question[$i]['cgram'] == 'VER' || $new_question[$i]['cgram'] == 'VER:past' || $new_question[$i]['cgram'] == 'AUX')){
 								break;
 							}
 							
@@ -95,10 +95,11 @@
 							
 							if(isset($new_question[$i]['cgram']) && 
 								(
-									$new_question[$i]['ortho'] == 'et' || 
+									($new_question[$i]['ortho'] == 'et' || 
 									$new_question[$i]['ortho'] == 'ou' || 
 									$new_question[$i]['ortho'] == 'ainsi' || 
-									$new_question[$i]['ortho'] == 'comme'
+									$new_question[$i]['ortho'] == 'comme') &&
+									$j != 0
 								)
 							){
 								$j++;
@@ -125,7 +126,7 @@
 						}
 						
 						for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){
-							if(isset($new_question[$i]['cgram']) && $new_question[$i]['cgram'] == 'VER' && $new_question[$i]['cgram'] == 'AUX'){
+							if(isset($new_question[$i]['cgram']) && ($new_question[$i]['cgram'] == 'VER' || $new_question[$i]['cgram'] == 'VER:past' || $new_question[$i]['cgram'] == 'AUX')){
 								break;
 							}
 														
@@ -161,7 +162,7 @@
 						if(empty($after_verb)){
 							$j = 0;
 							for($i = ((($index + 1) < count($new_question)) ? ($index + 1) : 0); $i < count($new_question); $i++){
-								if(isset($new_question[$i]['cgram']) && $new_question[$i]['cgram'] == 'VER' && $new_question[$i]['cgram'] == 'AUX'){
+								if(isset($new_question[$i]['cgram']) && ($new_question[$i]['cgram'] == 'VER' || $new_question[$i]['cgram'] == 'VER:past' || $new_question[$i]['cgram'] == 'AUX')){
 									break;
 								}
 								
@@ -224,6 +225,7 @@
 				} else {
 					$pro = $after_verb;
 				}
+				
 				$rightTense = array('ind', 'pre');
 				if ($pro == 'il' || $pro == 'elle' || 
 					$pro == 'celle' || $pro == 'cela' || 
@@ -302,6 +304,15 @@
 					}
 				}
 				
+				if ($pro == 'il' || $pro == 'elle' || 
+					$pro == 'ils' || $pro == 'elles' &&
+					!in_array('t', $response['pro_per_con'])){
+					$response['pro_per_con'][$key] = 't';
+					$response_temp['pro_per_con'][$key]['ortho'] = 't';
+					$response_temp['pro_per_con'][$key]['nombre'] = 's';
+					$response_temp['pro_per_con'][$key]['genre'] = 'm';
+				}
+				
 				/*Store in response temp variable*/
 				$cgram = str_replace(':', '_', strtolower($value['cgram']));				
 				$response_temp['pro_per'][$key]['ortho'] = $pro_per;
@@ -319,10 +330,10 @@
 					$lexique_query = mysqli_query($connexion, "SELECT ortho,genre,nombre,cgram FROM lexique WHERE infover LIKE '%inf;%' AND lemme = '".addslashes($value['lemme'])."' COLLATE utf8_bin AND cgram = '".$value['cgram']."' AND ortho = '".$value['ortho']."' LIMIT 1") or die (mysqli_error($connexion));
 					if(mysqli_num_rows($lexique_query) > 0){
 						$row = mysqli_fetch_assoc($lexique_query);
-						$response[strtolower($row['cgram'])][] = $row['ortho'];
+						$cgram = str_replace(':', '_', strtolower($row['cgram']));
+						$response[$cgram][] = $row['ortho'];
 						
 						/* Store in response temp variable */
-						$cgram = str_replace(':', '_', strtolower($row['cgram']));
 						if(!isset($verb_array_count[$cgram])){ $verb_array_count[$cgram] = 0;  } else { $verb_array_count[$cgram]++; }
 						$response_temp[$cgram][$verb_array_count[$cgram]]['ortho'] = $row['ortho'];
 						$response_temp[$cgram][$verb_array_count[$cgram]]['genre'] = !empty($row['genre']) ? $row['genre'] : 'm';
@@ -339,17 +350,15 @@
 					$lexique_query = mysqli_query($connexion, "SELECT ortho,genre,nombre,cgram FROM lexique WHERE infover LIKE '%par:pas;%' AND lemme = '".addslashes($value['lemme'])."' COLLATE utf8_bin AND cgram = '".$value['cgram']."' AND ortho = '".$value['ortho']."' LIMIT 1") or die (mysqli_error($connexion));
 					if(mysqli_num_rows($lexique_query) > 0){
 						$row = mysqli_fetch_assoc($lexique_query);
-						$response[strtolower($row['cgram'])][] = $row['ortho'];
+						$cgram = str_replace(':', '_', strtolower($row['cgram']));
+						$response[$cgram][] = $row['ortho'];
 						
 						/* Store in response temp variable */
-						$cgram = str_replace(':', '_', strtolower($row['cgram']));
 						if(!isset($verb_array_count[$cgram])){ $verb_array_count[$cgram] = 0;  } else { $verb_array_count[$cgram]++; }
 						$response_temp[$cgram][$verb_array_count[$cgram]]['ortho'] = $row['ortho'];
 						$response_temp[$cgram][$verb_array_count[$cgram]]['genre'] = !empty($row['genre']) ? $row['genre'] : 'm';
 						$response_temp[$cgram][$verb_array_count[$cgram]]['nombre'] = !empty($row['nombre']) ? $row['nombre'] : 's';
 						////////////////////////////////
-						
-						write_session('part',true);
 					}
 				} else {
 					$lexique_query = mysqli_query($connexion, "SELECT ortho,genre,nombre,infover,cgram FROM lexique WHERE infover LIKE '%".$rightTense[0].":".$rightTense[1].":".$person."%' AND lemme = '".addslashes($value['lemme'])."' COLLATE utf8_bin AND cgram = '".$value['cgram']."' LIMIT 1") or die (mysqli_error($connexion));
