@@ -304,13 +304,11 @@
 					}
 				}
 				
-				if ($pro == 'il' || $pro == 'elle' || 
-					$pro == 'ils' || $pro == 'elles' &&
-					!in_array('t', $response['pro_per_con'])){
-					$response['pro_per_con'][$key] = 't';
-					$response_temp['pro_per_con'][$key]['ortho'] = 't';
-					$response_temp['pro_per_con'][$key]['nombre'] = 's';
-					$response_temp['pro_per_con'][$key]['genre'] = 'm';
+				if ($pro != 'il' && $pro != 'elle' && 
+					$pro != 'ils' && $pro != 'elles'){
+					if(isset($response['pro_per_con'][$key])){
+						unset($response['pro_per_con'][$key]);
+					}
 				}
 				
 				/*Store in response temp variable*/
