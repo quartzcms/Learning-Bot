@@ -23,9 +23,9 @@ class pro_per_con {
 			foreach($this->build_memory['PRO:per:con'] as $word_key => $word_value){
 				$this->response['pro_per_con'][] = $word_value['ortho'];
 				$cgram = str_replace(':', '_', strtolower($word_value['cgram']));				
-				$this->response_temp[$cgram][$word_key]['ortho'] = isset($word_value['ortho']) ? $word_value['ortho'] : '';
-				$this->response_temp[$cgram][$word_key]['nombre'] = isset($word_value['nombre']) ? $word_value['nombre'] : 's';
-				$this->response_temp[$cgram][$word_key]['genre'] = isset($word_value['genre']) ? $word_value['genre'] : 'm';
+				$this->response_temp[$cgram][$word_key]['ortho'] = !empty($word_value['ortho']) ? $word_value['ortho'] : '';
+				$this->response_temp[$cgram][$word_key]['nombre'] = !empty($word_value['nombre']) ? $word_value['nombre'] : 's';
+				$this->response_temp[$cgram][$word_key]['genre'] = !empty($word_value['genre']) ? $word_value['genre'] : 'm';
 			}
 		}
 		
