@@ -32,8 +32,8 @@ class adj_pos {
 					$this->response_temp[$cgram][$word_key]['ortho'] = $word_value['ortho'];
 				}
 				
-				$this->response_temp[$cgram][$word_key]['nombre'] = isset($word_value['nombre']) ? $word_value['nombre'] : '';
-				$this->response_temp[$cgram][$word_key]['genre'] = isset($word_value['genre']) ? $word_value['genre'] : '';
+				$this->response_temp[$cgram][$word_key]['nombre'] = !empty($word_value['nombre']) ? $word_value['nombre'] : 's';
+				$this->response_temp[$cgram][$word_key]['genre'] = !empty($word_value['genre']) ? $word_value['genre'] : 'm';
 			} 
 		}
 		

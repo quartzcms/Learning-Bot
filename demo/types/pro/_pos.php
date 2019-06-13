@@ -23,9 +23,9 @@ class pro_pos {
 			foreach($this->build_memory['PRO:pos'] as $word_key => $word_value){
 				$this->response['pro_pos'][] = $word_value['ortho'];
 				$cgram = str_replace(':', '_', strtolower($word_value['cgram']));				
-				$this->response_temp[$cgram][$word_key]['ortho'] = isset($word_value['ortho']) ? $word_value['ortho'] : '';
-				$this->response_temp[$cgram][$word_key]['nombre'] = isset($word_value['nombre']) ? $word_value['nombre'] : '';
-				$this->response_temp[$cgram][$word_key]['genre'] = isset($word_value['genre']) ? $word_value['genre'] : '';
+				$this->response_temp[$cgram][$word_key]['ortho'] = !empty($word_value['ortho']) ? $word_value['ortho'] : '';
+				$this->response_temp[$cgram][$word_key]['nombre'] = !empty($word_value['nombre']) ? $word_value['nombre'] : 's';
+				$this->response_temp[$cgram][$word_key]['genre'] = !empty($word_value['genre']) ? $word_value['genre'] : 'm';
 			}
 		}
 		
