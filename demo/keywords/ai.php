@@ -174,8 +174,10 @@
 	
 					if(
 						isset($question_array[$key - 1]) &&
-						isset($words_kept_array[$question_array[$key - 1]]) && (
-							in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) ||
+						isset($words_kept_array[$question_array[$key - 1]]) &&
+						isset($question_array[$key - 2]) &&
+						isset($words_kept_array[$question_array[$key - 2]]) && (
+							(in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) && !in_array('PRO:int', $words_kept_array[$question_array[$key - 2]])) ||
 							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
@@ -193,6 +195,24 @@
 							in_array('ADJ', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ART:def', $words_kept_array[$question_array[$key - 2]])
 						) && ($row['cgram'] == 'VER')
+					){
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
+						isset($question_array[$key - 2]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) && 
+						isset($words_kept_array[$question_array[$key - 2]]) && 
+						(in_array('VER', $words_kept_array[$question_array[$key - 1]]) || 
+						in_array('VER:past', $words_kept_array[$question_array[$key - 1]]) || 
+						in_array('VER:inf', $words_kept_array[$question_array[$key - 1]]) || 
+						in_array('AUX', $words_kept_array[$question_array[$key - 1]])) &&
+						(in_array('VER', $words_kept_array[$question_array[$key - 2]]) || 
+						in_array('VER:past', $words_kept_array[$question_array[$key - 2]]) || 
+						in_array('VER:inf', $words_kept_array[$question_array[$key - 2]]) || 
+						in_array('AUX', $words_kept_array[$question_array[$key - 2]])) && 
+						($row['cgram'] == 'VER' || $row['cgram'] == 'VER:past' || $row['cgram'] == 'VER:inf' || $row['cgram'] == 'AUX')
 					){
 						$trigger = 0;
 					}
