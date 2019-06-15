@@ -369,23 +369,17 @@
 				}
 				
 				/*Store in response temp variable*/
-				$cgram = str_replace(':', '_', strtolower($value['cgram']));				
+				$cgram = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));				
 				$response_temp['pro_per'][$key]['ortho'] = $pro_per;
 				$response_temp['pro_per'][$key]['nombre'] = $pro_nombre;
 				$response_temp['pro_per'][$key]['genre'] = 'm';
 				/////////////////////////////////////
 				
-				if(
-					(strpos($tenses, 'inf;') !== false) &&
-					(strpos($tenses, '3s') === false) &&
-					(strpos($tenses, '3p') === false) &&
-					(strpos($tenses, '1s') === false) &&
-					(strpos($tenses, '2s') === false)
-				){
+				if(strpos($tenses, 'inf;') !== false){
 					$lexique_query = mysqli_query($connexion, "SELECT ortho,genre,nombre,cgram FROM lexique WHERE infover LIKE '%inf;%' AND lemme = '".addslashes($value['lemme'])."' COLLATE utf8_bin AND cgram = '".$value['cgram']."' AND ortho = '".$value['ortho']."' LIMIT 1") or die (mysqli_error($connexion));
 					if(mysqli_num_rows($lexique_query) > 0){
 						$row = mysqli_fetch_assoc($lexique_query);
-						$cgram = str_replace(':', '_', strtolower($row['cgram']));
+						$cgram = str_replace(':', '_', mb_strtolower($row['cgram'], 'UTF-8'));
 						$response[$cgram][] = $row['ortho'];
 						
 						/* Store in response temp variable */
@@ -395,17 +389,11 @@
 						$response_temp[$cgram][$verb_array_count[$cgram]]['nombre'] = !empty($row['nombre']) ? $row['nombre'] : 's';
 						////////////////////////////////
 					}
-				} elseif (
-					(strpos($tenses, 'par:pas;') !== false) &&
-					(strpos($tenses, '3s') === false) &&
-					(strpos($tenses, '3p') === false) &&
-					(strpos($tenses, '1s') === false) &&
-					(strpos($tenses, '2s') === false)
-				){
+				} elseif (strpos($tenses, 'par:pas;') !== false){
 					$lexique_query = mysqli_query($connexion, "SELECT ortho,genre,nombre,cgram FROM lexique WHERE infover LIKE '%par:pas;%' AND lemme = '".addslashes($value['lemme'])."' COLLATE utf8_bin AND cgram = '".$value['cgram']."' AND ortho = '".$value['ortho']."' LIMIT 1") or die (mysqli_error($connexion));
 					if(mysqli_num_rows($lexique_query) > 0){
 						$row = mysqli_fetch_assoc($lexique_query);
-						$cgram = str_replace(':', '_', strtolower($row['cgram']));
+						$cgram = str_replace(':', '_', mb_strtolower($row['cgram'], 'UTF-8'));
 						$response[$cgram][] = $row['ortho'];
 						
 						/* Store in response temp variable */
@@ -419,10 +407,10 @@
 					$lexique_query = mysqli_query($connexion, "SELECT ortho,genre,nombre,infover,cgram FROM lexique WHERE infover LIKE '%".$rightTense[0].":".$rightTense[1].":".$person."%' AND lemme = '".addslashes($value['lemme'])."' COLLATE utf8_bin AND cgram = '".$value['cgram']."' LIMIT 1") or die (mysqli_error($connexion));
 					if(mysqli_num_rows($lexique_query) > 0){
 						$row = mysqli_fetch_assoc($lexique_query);
-						$response[strtolower($row['cgram'])][] = $row['ortho'];
+						$response[mb_strtolower($row['cgram'], 'UTF-8')][] = $row['ortho'];
 						
 						/* Store in response temp variable */
-						$cgram = str_replace(':', '_', strtolower($row['cgram']));
+						$cgram = str_replace(':', '_', mb_strtolower($row['cgram'], 'UTF-8'));
 						if(!isset($verb_array_count[$cgram])){ $verb_array_count[$cgram] = 0;  } else { $verb_array_count[$cgram]++; }
 						$response_temp[$cgram][$verb_array_count[$cgram]]['ortho'] = $row['ortho'];
 						$response_temp[$cgram][$verb_array_count[$cgram]]['genre'] = !empty($row['genre']) ? $row['genre'] : 'm';
@@ -478,10 +466,10 @@
 						}*/
 						$response['pro_per'] = array_values($response['pro_per']);
 					} else {
-						$response[strtolower($value['cgram'])][] = $value['ortho'];
+						$response[mb_strtolower($value['cgram'], 'UTF-8')][] = $value['ortho'];
 						
 						/* Store in response temp variable */
-						$cgram = str_replace(':', '_', strtolower($value['cgram']));
+						$cgram = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
 						if(!isset($verb_array_count[$cgram])){ $verb_array_count[$cgram] = 0;  } else { $verb_array_count[$cgram]++; }
 						$response_temp[$cgram][$verb_array_count[$cgram]]['ortho'] = $value['ortho'];
 						$response_temp[$cgram][$verb_array_count[$cgram]]['genre'] = !empty($value['genre']) ? $value['genre'] : 'm';

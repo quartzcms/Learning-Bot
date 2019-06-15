@@ -14,7 +14,7 @@
 	$default = '_default';
 	
 	foreach($build_memory as $key => $value) {
-		$key = explode(':', strtolower($key));
+		$key = explode(':', mb_strtolower($key, 'UTF-8'));
 		if(isset($key[1])){
 			$class = $key[0].'_'.$key[1];
 			$class_var = 'class_'.$key[0].'_'.$key[1];
