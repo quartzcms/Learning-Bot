@@ -22,7 +22,7 @@ class con {
 		if(isset($this->build_memory['CON'])){
 			foreach($this->build_memory['CON'] as $word_key => $word_value){
 				$this->response['con'][] = $word_value['ortho'];
-				$cgram = str_replace(':', '_', strtolower($word_value['cgram']));				
+				$cgram = str_replace(':', '_', mb_strtolower($word_value['cgram'], 'UTF-8'));				
 				$this->response_temp[$cgram][$word_key]['ortho'] = !empty($word_value['ortho']) ? $word_value['ortho'] : '';
 				$this->response_temp[$cgram][$word_key]['nombre'] = !empty($word_value['nombre']) ? $word_value['nombre'] : '';
 				$this->response_temp[$cgram][$word_key]['genre'] = !empty($word_value['genre']) ? $word_value['genre'] : '';

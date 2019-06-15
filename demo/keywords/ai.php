@@ -106,6 +106,15 @@
 		}
 	}	
 	
+	function format_word($al_txt = null) {
+        $al_transliterationTable = array('á' => 'a', 'Á' => 'A', 'à' => 'a', 'À' => 'A', 'â' => 'a', 'Â' => 'A', 'å' => 'a', 'Å' => 'A', 'ã' => 'a', 'Ã' => 'A', 'ä' => 'ae', 'Ä' => 'AE', 'æ' => 'ae', 'Æ' => 'AE', 'ç' => 'c', 'Ç' => 'C', 'Ð' => 'D', 'ð' => 'dh', 'Ð' => 'Dh', 'é' => 'e', 'É' => 'E', 'è' => 'e', 'È' => 'E', 'ê' => 'e', 'Ê' => 'E', 'ë' => 'e', 'Ë' => 'E', 'ƒ' => 'f', 'ƒ' => 'F', 'í' => 'i', 'Í' => 'I', 'ì' => 'i', 'Ì' => 'I', 'î' => 'i', 'Î' => 'I', 'ï' => 'i', 'Ï' => 'I', 'ñ' => 'n', 'Ñ' => 'N', 'ó' => 'o', 'Ó' => 'O', 'ò' => 'o', 'Ò' => 'O', 'ô' => 'o', 'Ô' => 'O', 'õ' => 'o', 'Õ' => 'O', 'ø' => 'oe', 'Ø' => 'OE', 'ö' => 'oe', 'Ö' => 'OE', 'š' => 's', 'Š' => 'S', 'ß' => 'SS', 'ú' => 'u', 'Ú' => 'U', 'ù' => 'u', 'Ù' => 'U', 'û' => 'u', 'Û' => 'U', 'ü' => 'ue', 'Ü' => 'UE', 'ý' => 'y', 'Ý' => 'Y', 'ÿ' => 'y', 'Ÿ' => 'Y', 'ž' => 'z', 'Ž' => 'Z', 'þ' => 'th', 'Þ' => 'Th', 'µ' => 'u');
+        $al_txt = str_replace(array_keys($al_transliterationTable), array_values($al_transliterationTable), html_entity_decode($al_txt));
+        $al_txt = preg_replace_callback("/[^a-zA-Z0-9]/", function() {
+            return "_";
+        }, $al_txt);
+        return $al_txt;
+    }
+	
 	include('../core/functions.php');
 	include('../core/core.php');
 	$connexion = mysqli_connect($al_host, $al_user, $al_password, $al_db_name);
@@ -134,7 +143,7 @@
 		$_POST['question'] = str_replace('\'', ' ', $_POST['question']);
 		$_POST['question'] = str_replace('.', '', $_POST['question']);
 		$_POST['question'] = str_replace(',', '', $_POST['question']);
-		$_POST['question'] = strtolower($_POST['question']);
+		$_POST['question'] = mb_strtolower($_POST['question'], 'UTF-8');
 		$question_array = preg_split("/[\s]/", trim(str_replace('?', '', $_POST['question']), ' '));
 		$question_array = array_filter($question_array, function($value) { return $value !== ''; });
 		$path_array = array();
@@ -157,7 +166,14 @@
 		$data = array();
 		
 		foreach($question_array as $key => $value) {
-			$lexique_query = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes($value) . "' COLLATE utf8_bin ORDER BY FIND_IN_SET(cgram, 'PRO:int,CON,LIA,ART,ART:def,ART:ind,PRE,PRO:pos,PRO:per,PRO:per:con,PRO:ind,PRO:rel,PRO:dem,AUX,VER,VER:inf,VER:past,ADJ,ADJ:ind,ADJ:int,ADJ:num,ADJ:pos,ADV,ONO,NOM')") or die (mysqli_error($connexion));
+			$lexique_query2 = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes(mb_strtolower($value, 'UTF-8')) . "' COLLATE utf8_bin") or die (mysqli_error($connexion));
+			if(mysqli_num_rows($lexique_query2) == 0){
+				$utf8 = ' COLLATE utf8_general_ci';
+			} else {
+				$utf8 = ' COLLATE utf8_bin';
+			}
+			
+			$lexique_query = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes(mb_strtolower($value, 'UTF-8')) . "'".$utf8." ORDER BY FIND_IN_SET(cgram, 'PRO:int,CON,LIA,ART,ART:def,ART:ind,PRE,PRO:pos,PRO:per,PRO:per:con,PRO:ind,PRO:rel,PRO:dem,AUX,VER,VER:inf,VER:past,ADJ,ADJ:ind,ADJ:int,ADJ:num,ADJ:pos,ADV,ONO,NOM')") or die (mysqli_error($connexion));
 			if(mysqli_num_rows($lexique_query) > 0){
 				while ($row = mysqli_fetch_assoc($lexique_query)) { 
 					$data[md5($value)][] = $row; 
@@ -270,23 +286,22 @@
 					){
 						$trigger = 0;
 					}
-					
-					if($trigger == 1 && !in_array($row['ortho'], $types)){
+					if($trigger == 1 && !in_array(format_word($row['ortho']), $types)){
 						$build_memory[$row['cgram']][] = array(
-							'ortho' => strtolower($row['ortho']),
+							'ortho' => mb_strtolower(($row['ortho']), 'UTF-8'),
 							'lemme' => $row['lemme'],
 							'cgram' => $row['cgram'],
 							'genre' => $row['genre'],
 							'nombre' => $row['nombre'],
 							'infover' => $row['infover']
 						);
-						$words_kept .= strtolower($row['ortho']);
+						$words_kept .= format_word(mb_strtolower($row['ortho'], 'UTF-8'));
 						$words_kept_array[$row['ortho']][$row['id']] = $row['cgram'];
 						$path_array[$key]['cgram'] = $row['cgram'];
 						$path_array[$key]['genre'] = $row['genre'];
 						$path_array[$key]['nombre'] = $row['nombre'];
 					}
-					if($trigger == 1) { $types[]= $row['ortho']; }
+					if($trigger == 1) { $types[]= format_word($row['ortho']); }
 				}
 			}
 		}
@@ -391,7 +406,7 @@
 				if(!empty($build_memory[$key]) && isset($build_memory[$key])){
 					$build_conditions4 = array();
 					$new = array();
-					$index = str_replace(':', '_', strtolower($key));
+					$index = str_replace(':', '_', mb_strtolower($key, 'UTF-8'));
 					
 					foreach($value as $word_key => $word_value){
 						if(isset($response[$index])){

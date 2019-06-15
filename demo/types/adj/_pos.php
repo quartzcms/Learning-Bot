@@ -21,7 +21,7 @@ class adj_pos {
 		
 		if(isset($this->build_memory['ADJ:pos'])){
 			foreach($this->build_memory['ADJ:pos'] as $word_key => $word_value){
-				$cgram = str_replace(':', '_', strtolower($word_value['cgram']));
+				$cgram = str_replace(':', '_', mb_strtolower($word_value['cgram'], 'UTF-8'));
 				$reverse = mysqli_query($this->connexion, "SELECT * FROM adj_pos WHERE keyword = '".addslashes($word_value['ortho'])."' COLLATE utf8_bin LIMIT 1") or die (mysqli_error($this->connexion));
 				if(mysqli_num_rows($reverse) > 0){
 					$row = mysqli_fetch_assoc($reverse);

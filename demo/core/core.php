@@ -27,13 +27,13 @@ class core {
 		
 		/* Create pattern to store */
 		
-		$this->pattern_learn = strtolower(implode(' ', $this->question_array));
+		$this->pattern_learn = mb_strtolower((implode(' ', $this->question_array)), 'UTF-8');
 		$this->pattern_learn = str_replace('\'', ' ', $this->pattern_learn);
 		$this->pattern_learn = str_replace(' ', '} {', '{'.$this->pattern_learn.'}');
 		foreach($this->build_memory as $key => $words){
 			foreach($words as $word_key => $word_value){
-				$tag = '('.str_replace(':', '_', strtolower($key)).')';
-				$label = str_replace(':', '_', strtolower($key));
+				$tag = '('.str_replace(':', '_', mb_strtolower($key, 'UTF-8')).')';
+				$label = str_replace(':', '_', mb_strtolower($key, 'UTF-8'));
 				if(isset($word_value['ortho'])){
 					if(in_array($word_value['ortho'], $this->question_array) && isset($this->response[$label]) && !empty($this->response[$label])){
 						$this->pattern_learn = str_replace('{'.$word_value['ortho'].'}', $tag, $this->pattern_learn);
@@ -94,7 +94,7 @@ class core {
 		
 		foreach($this->build_memory as $key => $value){
 			if(is_array($this->build_memory[$key])){
-				$index = str_replace(':', '_', strtolower($key));
+				$index = str_replace(':', '_', mb_strtolower($key, 'UTF-8'));
 				if(!empty($index)){
 					if(!empty($this->response[$index]) && isset($this->response[$index])){
 						$this->data_to_verify[$index] = $this->response[$index];
@@ -139,7 +139,7 @@ class core {
 			!empty($this->pattern_learn)
 		){
 			$memory_insert = 1;
-			$insert = mysqli_query($this->connexion, "INSERT INTO ai_memory_".$this->type_bot." (".strtolower(implode(',', array_keys($this->data_to_insert))).", human, pattern, question, keywords, wikipedia, ip) VALUES ('".strtolower(implode('\',\'', array_values($this->data_to_insert)))."', '".addslashes($this->pattern_sentence)."', '".addslashes($this->pattern_learn)."', '".addslashes(use_session('last_question_sentence_'.$this->type_bot))."', '". json_encode(use_session('links_'.$this->type_bot), JSON_UNESCAPED_UNICODE)."', '".addslashes($append_data)."', '255.255.255.255')") or die (mysqli_error($this->connexion));
+			$insert = mysqli_query($this->connexion, "INSERT INTO ai_memory_".$this->type_bot." (".mb_strtolower(implode(',', array_keys($this->data_to_insert)), 'UTF-8').", human, pattern, question, keywords, wikipedia, ip) VALUES ('".mb_strtolower(implode('\',\'', array_values($this->data_to_insert)), 'UTF-8')."', '".addslashes($this->pattern_sentence)."', '".addslashes($this->pattern_learn)."', '".addslashes(use_session('last_question_sentence_'.$this->type_bot))."', '". json_encode(use_session('links_'.$this->type_bot), JSON_UNESCAPED_UNICODE)."', '".addslashes($append_data)."', '255.255.255.255')") or die (mysqli_error($this->connexion));
 			write_session('last_question_sentence_'.$this->type_bot, '');
 		}
 		
