@@ -335,7 +335,7 @@
 		$memory_insert = 0;
 		
 		foreach($question_array as $key => $value){
-			if(strpos($words_kept, $question_array[$key]) !== false){} else {
+			if(strpos($words_kept, format_word($question_array[$key])) !== false){} else {
 				$build_memory['OTHER'][] = array('ortho' => $value);
 			}
 		}
