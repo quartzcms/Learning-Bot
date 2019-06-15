@@ -214,7 +214,7 @@
 					){
 						$trigger = 0;
 					}
-					
+					/*
 					if(
 						isset($question_array[$key - 1]) &&
 						isset($question_array[$key - 2]) &&
@@ -231,7 +231,7 @@
 						($row['cgram'] == 'VER' || $row['cgram'] == 'VER:past' || $row['cgram'] == 'VER:inf' || $row['cgram'] == 'AUX')
 					){
 						$trigger = 0;
-					}
+					}*/
 					
 					if(
 						isset($question_array[$key - 1]) &&
