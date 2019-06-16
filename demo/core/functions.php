@@ -53,10 +53,13 @@
 							
 							if(isset($new_question[$i]['cgram']) && $new_question[$i]['cgram'] == 'NOM'){
 								if(
-									(isset($new_question[$i - 1]['cgram']) && 
-									($new_question[$i - 1]['cgram'] == 'ART:def' || 
-									$new_question[$i - 1]['cgram'] == 'ADJ:pos'))
+									isset($new_question[$i - 1]['cgram']) &&
+									($new_question[$i - 1]['cgram'] == 'ART:def' || $new_question[$i - 1]['cgram'] == 'ADJ:pos')
 								) {
+									if(isset($new_question[$i - 2]['cgram']) &&	$new_question[$i - 2]['cgram'] == 'ART:def'){
+										continue;
+									}
+									
 									$pre_verb = $new_question[$i]['ortho'];
 									break;
 								}
