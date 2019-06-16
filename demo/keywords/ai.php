@@ -165,23 +165,29 @@
 		
 		$data = array();
 		
-		foreach($question_array as $key => $value) {
-			$lexique_query2 = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes(mb_strtolower($value, 'UTF-8')) . "' COLLATE utf8_bin") or die (mysqli_error($connexion));
-			if(mysqli_num_rows($lexique_query2) == 0){
-				$utf8 = ' COLLATE utf8_general_ci';
-			} else {
-				$utf8 = ' COLLATE utf8_bin';
-			}
-			
-			$lexique_query = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes(mb_strtolower($value, 'UTF-8')) . "'".$utf8." ORDER BY FIND_IN_SET(cgram, 'PRO:int,CON,LIA,ART,ART:def,ART:ind,PRE,PRO:pos,PRO:per,PRO:per:con,PRO:ind,PRO:rel,PRO:dem,AUX,VER,VER:inf,VER:past,ADJ,ADJ:ind,ADJ:int,ADJ:num,ADJ:pos,ADV,ONO,NOM')") or die (mysqli_error($connexion));
+		foreach($question_array as $key => $value) {			
+			$lexique_query = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes(mb_strtolower($value, 'UTF-8')) . "' ORDER BY FIND_IN_SET(cgram, 'PRO:int,CON,LIA,ART,ART:def,ART:ind,PRE,PRO:pos,PRO:per,PRO:per:con,PRO:ind,PRO:rel,PRO:dem,AUX,VER,VER:inf,VER:past,ADJ,ADJ:ind,ADJ:int,ADJ:num,ADJ:pos,ADV,ONO,NOM')") or die (mysqli_error($connexion));
 			if(mysqli_num_rows($lexique_query) > 0){
 				while ($row = mysqli_fetch_assoc($lexique_query)) { 
 					$data[md5($value)][] = $row; 
 				}
+			} else {
+				$build_memory['OTHER'][] = array('ortho' => $value);
 			}
-		}
+		}		
 		
 		foreach($question_array as $key => $value) {
+			$test = 0;
+			foreach($build_memory['OTHER'] as $key2 => $value2){
+				if($value2['ortho'] == $value){
+					$test = 1;
+				}
+			}
+			
+			if($test == 1){
+				continue;
+			}
+			
 			$types = array();
 			$path_array[$key]['ortho'] = $value;
 			if(isset($data[md5($value)])){
@@ -193,7 +199,15 @@
 						isset($words_kept_array[$question_array[$key - 1]]) &&
 						isset($question_array[$key - 2]) &&
 						isset($words_kept_array[$question_array[$key - 2]]) && (
-							(!in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) && in_array('PRO:int', $words_kept_array[$question_array[$key - 2]])) ||
+							(
+								in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) && 
+								(
+									!in_array('PRO:int', $words_kept_array[$question_array[$key - 2]]) && 
+									!in_array('ART:def', $words_kept_array[$question_array[$key - 2]]) && 
+									!in_array('CON', $words_kept_array[$question_array[$key - 2]]) && 
+									!in_array('PRO:per', $words_kept_array[$question_array[$key - 2]])
+								)
+							) ||
 							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
@@ -214,30 +228,19 @@
 					){
 						$trigger = 0;
 					}
-					/*
-					if(
-						isset($question_array[$key - 1]) &&
-						isset($question_array[$key - 2]) &&
-						isset($words_kept_array[$question_array[$key - 1]]) && 
-						isset($words_kept_array[$question_array[$key - 2]]) && 
-						(in_array('VER', $words_kept_array[$question_array[$key - 1]]) || 
-						in_array('VER:past', $words_kept_array[$question_array[$key - 1]]) || 
-						in_array('VER:inf', $words_kept_array[$question_array[$key - 1]]) || 
-						in_array('AUX', $words_kept_array[$question_array[$key - 1]])) &&
-						(in_array('VER', $words_kept_array[$question_array[$key - 2]]) || 
-						in_array('VER:past', $words_kept_array[$question_array[$key - 2]]) || 
-						in_array('VER:inf', $words_kept_array[$question_array[$key - 2]]) || 
-						in_array('AUX', $words_kept_array[$question_array[$key - 2]])) && 
-						($row['cgram'] == 'VER' || $row['cgram'] == 'VER:past' || $row['cgram'] == 'VER:inf' || $row['cgram'] == 'AUX')
-					){
-						$trigger = 0;
-					}*/
 					
 					if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'ONO')
+					){
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key + 1]) &&
+						search_multi_array($data, $question_array[$key + 1], 'AUX') && ($row['cgram'] == 'VER')
 					){
 						$trigger = 0;
 					}
@@ -258,7 +261,7 @@
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('AUX', $words_kept_array[$question_array[$key - 1]])
-						) && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:inf' || $row['cgram'] == 'VER:past') && (strpos($row['infover'], 'par:pas;') === false)
+						) && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:inf')
 					){
 						$trigger = 0;
 					}
@@ -333,12 +336,6 @@
 		$rand = (strpos($_POST['question'], '?') !== false) ? 0 : $rand;
 		$verbs = [];
 		$memory_insert = 0;
-		
-		foreach($question_array as $key => $value){
-			if(strpos($words_kept, format_word($question_array[$key])) !== false){} else {
-				$build_memory['OTHER'][] = array('ortho' => $value);
-			}
-		}
 		
 		if($wiki_later == 1){
 			if(isset($build_memory['NOM'][0])){
@@ -564,98 +561,94 @@
 			
 			/* INFINITIF VERBS */
 			$modele[] = 'other,ver_inf,art_def|adj_num|adj_pos,nom|other**1,adj+**1,aux,pro_per*1,art_def,nom**1,adj+**1,question';
-			$modele[] = 'other,ver_inf,art_def|adj_num|adj_pos,nom|other**1,adj+**1,aux,pro_per*1,art_def,adj+**1,question';
-			$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,ver_inf,art_def,art_def+,nom**2,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,ver_inf,art_def,art_def+,nom**2,question';
-			$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,ver_inf,art_ind,nom**1,adj**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,ver_inf,art_def,art_def+,nom**2,adj+**1,question';
+			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,art_def,art_def+,nom**2,question';
+			$modele[] = 'ver_inf,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,pro_per_con+,pro_per**2,art_def,art_def+,nom**2,question';
+			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux**1,adv+,art_ind,nom**1,adj**1,question';
+			$modele[] = 'pro_per,ver,adv+,ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
 			/* END OF INFINITIF VERBS */
 			
 			/* PAST PARTICIPLE */
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,ver_past**1,adv+,art_def,art_def+,nom**2,adj+**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,pro_per_con+,pro_per*2,ver_past**1,art_ind,nom**1,adj+**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,pro_per_con+,pro_per*2,ver_past**1,art_def,art_def+,nom**2,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,ver_past**3,art_def,art_def+,nom**2,adj+**1,dot';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,pro_per_con+,pro_per*2,ver_past**1,question';
-			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,other,adv+,aux*4,pro_per_con+,pro_per*2,ver_past**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,ver_past**3,art_ind,nom**1,adj+**1,dot';
-			$modele[] = 'adv+,aux,pro_per_con+,pro_per*2,ver_past**1,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux,ver_past**3,art_def,art_def+,nom**2,dot';
-			$modele[] = 'art_def,art_def+,nom|other**1,adj+**1,other,adv+,aux*4,pro_per_con+,pro_per*2,ver_past**1,question';
-			$modele[] = 'adv+,aux,pro_per_con+,pro_per*2,ver_past**1,art_def,art_def+,nom|other**2,adj+**1,question';
-			$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom|other**6,adj**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,ver_past**3,dot';
-			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,aux*3,ver_past**4,dot';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom**2,adj+**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_ind,nom**1,adj+**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom**2,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,adv+,ver_past**3,art_def,art_def+,nom**2,adj+**1,dot';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*2,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
+			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,aux*2,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,adv+,ver_past**3,art_ind,nom**1,adj+**1,dot';
+			$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,adv+,ver_past**3,art_def,art_def+,nom**2,dot';
+			$modele[] = 'art_def,art_def+,nom|other**2,adj+**1,other,aux*3,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
+			$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,question';
+			$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*2,adv+,ver_past**3,dot';
+			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,aux*3,adv+,ver_past**5,dot';
 			/* END OF PAST PARTICIPLE */
 			
 			if ($action[$rand] == 'rep') {
-				$modele[] = 'art_def|adj_num|adj_pos,other,adj+**2,adv+,ver**4,pro_per**1,art_def,art_def+,nom|other**2,question';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux*2,pro_per_con+,pro_per*2,adj**1,art_def,art_def+,nom**2,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux|ver*2,pro_per_con+,pro_per*2,art_def,art_def+,nom**2,question';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux*2,pro_per_con+,pro_per*2,adj**1,art_ind,nom**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,pro_per_con+,pro_per*2,art_def,art_def+,nom**2,question';
+				$modele[] = 'art_def|adj_num|adj_pos,other,adj+**2,ver**3,pro_per**1,adv+,art_def,art_def+,nom|other**2,question';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,ver|aux*2,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux|ver*2,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1,pro_per_con+,pro_per*2,adv+,art_ind,nom**1,adj**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,pro_per_con+,pro_per*2,ver_inf,art_def,art_def+,nom**2,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per_con+,pro_per*2,art_ind,nom**1,adj**1,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per_con+,pro_per*2,art_def,art_def+,nom**2,adj**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,pro_per_con+,pro_per**2,art_ind,adj,nom**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,pro_per_con+,pro_per**2,art_def,art_def+,adj+,nom**2,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux|ver*2,pro_per_con+,pro_per*2,art_ind,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**2,pro_per_con+,pro_per**2,adv+,art_ind,nom**1,adj,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,pro_per_con+,pro_per**2,adv+,art_def,art_def+,nom**2,adj+,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux|ver*1,pro_per_con+,pro_per*2,adv+,art_ind,nom**1,question';
 			} elseif ($action[$rand] == 'sug') {
 				$modele[] = 'pro_per,ver**1,art_def|adj_num|adj_pos,other,adj+,art_def,art_def+,nom|other**2,dot';
-				$modele[] = 'pro_per,adv+,aux*2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_def,art_def+,nom**2,dot';
-				$modele[] = 'pro_per,adv+,aux*2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_ind,nom**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_ind,nom**1,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_def,art_def+,nom**2,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_ind,nom**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_def,art_def+,nom**2,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_ind,nom**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**2,art_def,art_def+,nom**2,dot';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux*2,adj+**3,art_def,art_def+,nom**2,dot';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver|aux*2,adj+**3,art_ind,nom**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,adj+**3,dot';
+				$modele[] = 'pro_per,aux*1,adv+,ver_past,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_def,art_def+,nom**2,dot';
+				$modele[] = 'pro_per,aux*1,ver_past,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,adj**2,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,adv+,art_ind,nom**1,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,adv+,art_def,art_def+,nom**2,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,adv+,art_ind,nom**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,adv+,art_def,art_def+,nom**2,dot';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1,adv+,adj+**3,art_def,art_def+,nom**2,dot';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1,adv+,adj+**3,art_ind,nom**1,dot';
 			}
 			
 			
 			/* PAST PARTICIPLE */
 			$modele[] = 'pro_per,aux*1,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,dot';
-			$modele[] = 'adv+,aux,pro_per*1,ver_past**2,art_ind,nom|other**1,adj+**1,question';
-			$modele[] = 'art_def,art_def+,nom|other**2,adv+,aux*2,ver_past**3,dot';
+			$modele[] = 'aux,pro_per*1,adv+,ver_past**2,art_ind,nom|other**1,adj+**1,question';
+			$modele[] = 'art_def,art_def+,nom|other**2,aux*1,adv+,ver_past**3,dot';
 			$modele[] = 'pro_per,aux*1,ver_past**2,art_ind,nom|other**1,adj+**1,dot';
-			$modele[] = 'pro_per|pro_dem|pro_ind|nom,aux*1,ver_past**2,dot';
-			$modele[] = 'adv+,aux,pro_per_con+,pro_per*2,ver_past**1,question';
+			$modele[] = 'pro_per|pro_dem|pro_ind,aux*1,ver_past**2,dot';
+			$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
 			/* END OF PAST PARTICIPLE */
 			
 			/* INFINITIF VERBS */
-			$modele[] = 'ver,ver_inf,art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-			$modele[] = 'ver,ver_inf,art_def|adj_num|adj_pos,adv+,nom|other**2,question';
-			$modele[] = 'ver_inf,art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-			$modele[] = 'ver,ver_inf,adv,art_def,nom|other**1,adj+**1,question';
-			$modele[] = 'pro_per|pro_dem|pro_ind,adv+,ver,ver_inf,adj+**1,question';
+			$modele[] = 'ver_inf,ver_inf+,art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
+			$modele[] = 'adv+,ver_inf,ver_inf+,art_def|adj_num|adj_pos,nom|other**2,question';
+			$modele[] = 'adv,ver_inf,ver_inf+,art_def,nom|other**1,adj+**1,question';
+			$modele[] = 'pro_per|pro_dem|pro_ind,ver,adv+,lia,ver_inf,adj+,question';
 			$modele[] = 'ver_inf,art_def,art_def+,nom|other**2,question';
 			$modele[] = 'ver_inf,art_def,nom|other**1,question';
 			$modele[] = 'ver_inf,question';
 			/* END OF INFINITIF VERBS */
 			
 			if ($action[$rand] == 'rep') {
-				$modele[] = 'aux*1,pro_per_con+,pro_per,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
+				$modele[] = 'aux,pro_per_con+,pro_per*2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
 				$modele[] = 'pro_per,aux*1,adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per|pro_dem|pro_ind,adv+,aux*2,adj+**1,question';
+				$modele[] = 'pro_per|pro_dem|pro_ind,aux*1,adv+,ver_past,question';
 				$modele[] = 'aux,pro_per*1,art_def,art_def+,nom|other**2,adj+**1,question';
 				$modele[] = 'aux,pro_per*1,art_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per|pro_dem|pro_ind,adv+,aux|ver*2,question';
+				$modele[] = 'pro_per|pro_dem|pro_ind,aux|ver*1,adv+,question';
 				$modele[] = 'pro_int,aux|ver,pro_per_con+,pro_per*2,question';
 				$modele[] = 'nom|other,question';
 				$modele[] = 'ono,question';
 			} elseif ($action[$rand] == 'sug') {
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,adv+,other,dot';
+				$modele[] = 'pro_per,aux*1,adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**3,dot';
 				$modele[] = 'pro_per,aux|ver*1,art_def,art_def+,nom|other**2,adj+**1,dot';
-				$modele[] = 'ver,pro_per_con+,pro_per*1,ver_inf,art_def,art_def+,nom|other**2,adj+**1,dot';
-				$modele[] = 'pro_per,aux*1,art_def,art_def+,nom|other**2,adj+**1,dot';
+				$modele[] = 'ver,pro_per_con+,pro_per*1,lia,ver_inf,art_def,art_def+,nom|other**2,adj+**1,dot';
 				$modele[] = 'pro_per,aux|ver*1,art_ind,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per,aux|ver**1,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per,aux|ver*1,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,dot';
 				$modele[] = 'pro_per,aux*1,art_ind,nom|other**1,adj+**1,dot';
-				$modele[] = 'art_def,art_def+,nom|other**2,adv+,aux*2,adj+**3,dot';
-				$modele[] = 'adj_num|adj_pos|pro_ind,nom|other**1,adv+,aux*2,adj+**3,dot';
-				$modele[] = 'pro_per|pro_dem|pro_ind,adv+,aux*2,adj+,dot';
+				$modele[] = 'art_def,art_def+,nom|other**2,aux*1,adv+,adj+**3,dot';
+				$modele[] = 'adj_num|adj_pos|pro_ind,nom|other**1,aux*1,adv+,adj+**3,dot';
+				$modele[] = 'pro_per|pro_dem|pro_ind,aux*1,adv+,adj+,dot';
 				$modele[] = 'pro_per|pro_dem|pro_ind,aux|ver*1,dot';
 				$modele[] = 'nom|other,dot';
 				$modele[] = 'ono,dot';
