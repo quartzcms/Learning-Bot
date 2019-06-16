@@ -177,15 +177,17 @@
 		}		
 		
 		foreach($question_array as $key => $value) {
-			$test = 0;
-			foreach($build_memory['OTHER'] as $key2 => $value2){
-				if($value2['ortho'] == $value){
-					$test = 1;
+			if(isset($build_memory['OTHER']) && !empty($build_memory['OTHER'])){
+				$test = 0;
+				foreach($build_memory['OTHER'] as $key2 => $value2){
+					if($value2['ortho'] == $value){
+						$test = 1;
+					}
 				}
-			}
-			
-			if($test == 1){
-				continue;
+				
+				if($test == 1){
+					continue;
+				}
 			}
 			
 			$types = array();
