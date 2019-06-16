@@ -202,12 +202,11 @@
 						isset($question_array[$key - 2]) &&
 						isset($words_kept_array[$question_array[$key - 2]]) && (
 							(
-								in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) && 
+								in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) &&
+								$row['cgram'] != 'VER:inf' &&
 								(
-									!in_array('PRO:int', $words_kept_array[$question_array[$key - 2]]) && 
-									!in_array('ART:def', $words_kept_array[$question_array[$key - 2]]) && 
-									!in_array('CON', $words_kept_array[$question_array[$key - 2]]) && 
-									!in_array('PRO:per', $words_kept_array[$question_array[$key - 2]])
+									in_array('ART:def', $words_kept_array[$question_array[$key - 2]]) || 
+									in_array('CON', $words_kept_array[$question_array[$key - 2]])
 								)
 							) ||
 							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
