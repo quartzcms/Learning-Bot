@@ -278,14 +278,6 @@
 					}
 					
 					if(
-						isset($question_array[$key + 1]) && 
-						strlen($question_array[$key + 1]) == 1 && 
-						($row['cgram'] == 'VER')
-					){
-						$trigger = 0;
-					}
-					
-					if(
 						isset($question_array[$key + 1]) &&
 						search_multi_array($data, $question_array[$key + 1], 'AUX') && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:inf' || $row['cgram'] == 'VER:past')
 					){
