@@ -364,12 +364,12 @@
 					}
 				}
 				
-				if ($pro != 'il' && $pro != 'elle' && 
+				/*if ($pro != 'il' && $pro != 'elle' && 
 					$pro != 'ils' && $pro != 'elles'){
 					if(isset($response['pro_per_con'][$key])){
 						unset($response['pro_per_con'][$key]);
 					}
-				}
+				}*/
 				
 				/*Store in response temp variable*/
 				$cgram = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));				
