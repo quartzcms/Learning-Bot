@@ -220,40 +220,13 @@
 					
 					if(
 						isset($question_array[$key - 1]) &&
-						isset($question_array[$key - 2]) &&
-						isset($words_kept_array[$question_array[$key - 1]]) && 
-						isset($words_kept_array[$question_array[$key - 2]]) && (
-							in_array('ADJ', $words_kept_array[$question_array[$key - 1]]) ||
-							in_array('ART:def', $words_kept_array[$question_array[$key - 2]])
-						) && ($row['cgram'] == 'VER')
-					){
-						$trigger = 0;
-					}
-					
-					if(
-						isset($question_array[$key - 1]) &&
-						isset($words_kept_array[$question_array[$key - 1]]) && (
-							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
-						) && ($row['cgram'] == 'ONO')
-					){
-						$trigger = 0;
-					}
-					
-					if(
-						isset($question_array[$key + 1]) &&
-						search_multi_array($data, $question_array[$key + 1], 'AUX') && ($row['cgram'] == 'VER')
-					){
-						$trigger = 0;
-					}
-					
-					if(
-						isset($question_array[$key - 1]) &&
-						isset($words_kept_array[$question_array[$key - 1]]) && (
-							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
-							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
-							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
-							in_array('PRO:pos', $words_kept_array[$question_array[$key - 1]])
-						) && ($row['cgram'] == 'ADJ')
+						isset($words_kept_array[$question_array[$key - 1]]) &&
+						(
+							in_array('VER', $words_kept_array[$question_array[$key - 1]]) ||
+							in_array('VER:inf', $words_kept_array[$question_array[$key - 1]]) ||
+							in_array('VER:past', $words_kept_array[$question_array[$key - 1]])
+						) && ($row['cgram'] == 'AUX') &&
+						(strpos($row['infover'], 'inf;') === false)
 					){
 						$trigger = 0;
 					}
@@ -269,6 +242,44 @@
 					
 					if(
 						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) &&
+						in_array('VER', $words_kept_array[$question_array[$key - 1]]) && ($row['cgram'] == 'VER')
+					){
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) &&
+						in_array('VER:past', $words_kept_array[$question_array[$key - 1]]) && ($row['cgram'] == 'VER:past')
+					){
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) && (
+							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
+						) && ($row['cgram'] == 'ONO')
+					){
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) && (
+							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
+							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
+							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
+							in_array('PRO:pos', $words_kept_array[$question_array[$key - 1]]) ||
+							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
+						) && ($row['cgram'] == 'ADJ')
+					){
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'PRO:ind')
@@ -276,12 +287,6 @@
 						$trigger = 0;
 					}
 					
-					if(
-						isset($question_array[$key + 1]) &&
-						search_multi_array($data, $question_array[$key + 1], 'AUX') && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:inf' || $row['cgram'] == 'VER:past')
-					){
-						$trigger = 0;
-					}
 					if($trigger == 1 && !in_array(format_word($row['ortho']), $types)){
 						$build_memory[$row['cgram']][] = array(
 							'ortho' => mb_strtolower(($row['ortho']), 'UTF-8'),
