@@ -241,9 +241,9 @@
 					}
 					
 					if(
-						isset($question_array[$key - 1]) &&
-						isset($words_kept_array[$question_array[$key - 1]]) &&
-						in_array('VER', $words_kept_array[$question_array[$key - 1]]) && ($row['cgram'] == 'VER')
+						isset($question_array[$key + 1]) &&
+						search_multi_array($data, $question_array[$key + 1], 'VER') &&
+						($row['cgram'] == 'VER') && (strpos($row['infover'], 'par:pre;') === false)
 					){
 						$trigger = 0;
 					}
