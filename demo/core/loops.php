@@ -85,6 +85,7 @@
 	foreach($path_array as $key => $value){
 		foreach($verbs as $index => $verb){
 			if($path_array[$key]['ortho'] == $verbs[$index]['ortho']){
+				$verbs[$index]['id'] = $key;
 				$verb_temp[] = $verbs[$index];
 			}
 		}

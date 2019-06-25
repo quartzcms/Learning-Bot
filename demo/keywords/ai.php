@@ -27,6 +27,7 @@
 	if(!use_session('last_question_sentence_'.$type_bot)){ write_session('last_question_sentence_'.$type_bot, ''); }
 	if(!use_session('used_id_'.$type_bot)){ write_session('used_id_'.$type_bot, array()); }
 	if(!use_session('note_'.$type_bot)){ write_session('note_'.$type_bot, array()); }
+	if(!use_session('last_response_'.$type_bot)){ write_session('last_response_'.$type_bot, array()); }
 	$already_said = 'no';
 	$trigger_verb = '';
 	if(use_session('last_question_'.$type_bot) == 1){
@@ -37,6 +38,7 @@
 	if(use_session('count_response_'.$type_bot) > 10){
 		write_session('used_id_'.$type_bot, array());
 		write_session('note_'.$type_bot, array());
+		write_session('last_response_'.$type_bot, array());
 	}
 	
 	$bot_notes = use_session('note_'.$type_bot);
@@ -123,6 +125,7 @@
 	$response = array();
 	$words_kept = '';
 	$words_kept_array = array();
+	$words_kept_array2 = array();
 	$freecard = 0;
 	if(isset($_POST['question']) && !empty($_POST['question'])) {
 		$reason = $_POST['question'];
@@ -199,21 +202,30 @@
 					if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) &&
-						isset($question_array[$key - 2]) &&
-						isset($words_kept_array[$question_array[$key - 2]]) && (
+						/*isset($question_array[$key - 2]) &&
+						isset($words_kept_array[$question_array[$key - 2]]) && */(
 							(
-								in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) &&
+								in_array('ART:def', $words_kept_array[$question_array[$key - 1]])/* &&
 								$row['cgram'] != 'VER:inf' &&
 								(
 									in_array('ART:def', $words_kept_array[$question_array[$key - 2]]) || 
 									in_array('CON', $words_kept_array[$question_array[$key - 2]])
-								)
+								)*/
 							) ||
 							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('PRO:pos', $words_kept_array[$question_array[$key - 1]])
-						) && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:inf' || $row['cgram'] == 'VER:past' || $row['cgram'] == 'AUX')
+						) && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:past' || $row['cgram'] == 'AUX')
+					){
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) && (
+							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]])
+						) && ($row['cgram'] == 'VER:inf')
 					){
 						$trigger = 0;
 					}
@@ -234,15 +246,17 @@
 					if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
-							in_array('AUX', $words_kept_array[$question_array[$key - 1]])
+							in_array('AUX', $words_kept_array[$question_array[$key - 1]]) /*&&
+							$question_array[$key - 1] != 'est'*/
 						) && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:inf')
 					){
 						$trigger = 0;
 					}
 					
 					if(
-						isset($question_array[$key + 1]) &&
-						search_multi_array($data, $question_array[$key + 1], 'VER') &&
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) &&
+						in_array('VER', $words_kept_array[$question_array[$key - 1]]) &&
 						($row['cgram'] == 'VER') && (strpos($row['infover'], 'par:pre;') === false)
 					){
 						$trigger = 0;
@@ -251,7 +265,17 @@
 					if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) &&
-						in_array('VER:past', $words_kept_array[$question_array[$key - 1]]) && ($row['cgram'] == 'VER:past')
+						in_array('VER:past', $words_kept_array[$question_array[$key - 1]]) && 
+						($row['cgram'] == 'VER:past')
+					){
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) &&
+						in_array('VER:inf', $words_kept_array[$question_array[$key - 1]]) && 
+						($row['cgram'] == 'VER')
 					){
 						$trigger = 0;
 					}
@@ -272,20 +296,21 @@
 							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('PRO:pos', $words_kept_array[$question_array[$key - 1]]) ||
-							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
+							in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) ||
+							in_array('ADV', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'ADJ')
 					){
 						$trigger = 0;
 					}
 					
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'PRO:ind')
 					){
 						$trigger = 0;
-					}
+					}*/
 					
 					if($trigger == 1 && !in_array(format_word($row['ortho']), $types)){
 						$build_memory[$row['cgram']][] = array(
@@ -298,6 +323,8 @@
 						);
 						$words_kept .= format_word(mb_strtolower($row['ortho'], 'UTF-8'));
 						$words_kept_array[$row['ortho']][$row['id']] = $row['cgram'];
+						$words_kept_array2[$row['ortho']][$row['id']] = $row['infover'];
+						$path_array[$key]['ortho'] = $row['ortho'];
 						$path_array[$key]['cgram'] = $row['cgram'];
 						$path_array[$key]['genre'] = $row['genre'];
 						$path_array[$key]['nombre'] = $row['nombre'];
@@ -363,7 +390,7 @@
 		include('../core/loops.php');
 		
 		/* VERBS */
-		$verbs_and_pronouns = renderVerbs($verbs, $response, $response_temp, $path_array, $build_memory, $connexion);
+		$verbs_and_pronouns = renderVerbs($reason, $verbs, $response, $response_temp, $path_array, $build_memory, $connexion);
 		extract($verbs_and_pronouns, EXTR_OVERWRITE);
 		/* CLEAN PRONOUNS */
 		unset($response['pro_g']);
@@ -378,7 +405,7 @@
 			$inserted_data = $core->dataInsert($response, $memory_insert, $append_data);
 			extract($inserted_data, EXTR_OVERWRITE);
 		}
-		
+		$response['pro_per'] = $last2;
 		foreach($groups as $value){
 			$response[$value] = !empty($response[$value]) ? array_values($response[$value]) : array();
 		}
@@ -454,7 +481,9 @@
 			$data = mysqli_fetch_assoc($memory_query);
 			
 			if(mysqli_num_rows($memory_query) > 0){
-				write_session('used_id_'.$type_bot, array($data['id']));
+				$used_id = use_session('used_id_'.$type_bot);
+				$used_id[] = $data['id'];
+				write_session('used_id_'.$type_bot, $used_id);
 				$randWords = rand(1, 5);
 				
 				if(!empty($data)){
@@ -566,38 +595,44 @@
 			/* END OF INFINITIF VERBS */
 			
 			/* PAST PARTICIPLE */
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom**2,adj+**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_ind,nom**1,adj+**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom**2,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,adv+,ver_past**3,art_def,art_def+,nom**2,adj+**1,dot';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*2,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
-			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,aux*2,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,adv+,ver_past**3,art_ind,nom**1,adj+**1,dot';
-			$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,adv+,ver_past**3,art_def,art_def+,nom**2,dot';
-			$modele[] = 'art_def,art_def+,nom|other**2,adj+**1,other,aux*3,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
-			$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,question';
-			$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*2,adv+,ver_past**3,dot';
-			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,aux*3,adv+,ver_past**5,dot';
+			if(empty($response['ver'])){
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom**2,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_ind,nom**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom**2,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,adv+,ver_past**3,art_def,art_def+,nom**2,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*2,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
+				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,aux*2,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,adv+,ver_past**3,art_ind,nom**1,adj+**1,dot';
+				$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux,adv+,ver_past**3,art_def,art_def+,nom**2,dot';
+				$modele[] = 'art_def,art_def+,nom|other**2,adj+**1,other,aux*3,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
+				$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,question';
+				$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*2,adv+,ver_past**3,dot';
+				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,aux*3,adv+,ver_past**5,dot';
+			}
 			/* END OF PAST PARTICIPLE */
 			
 			if ($action[$rand] == 'rep') {
 				$modele[] = 'art_def|adj_num|adj_pos,other,adj+**2,ver**3,pro_per**1,adv+,art_def,art_def+,nom|other**2,question';
 				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,ver|aux*2,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux|ver*2,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*2,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
 				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1,pro_per_con+,pro_per*2,adv+,art_ind,nom**1,adj**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,pro_per_con+,pro_per*2,ver_inf,art_def,art_def+,nom**2,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per_con+,pro_per*2,art_ind,nom**1,adj**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per_con+,pro_per*2,art_def,art_def+,nom**2,adj**1,question';
+				if(empty($response['ver'])){
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per_con+,pro_per*2,art_ind,nom**1,adj**1,question';
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,pro_per_con+,pro_per*2,art_def,art_def+,nom**2,adj**1,question';
+				}
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**2,pro_per_con+,pro_per**2,adv+,art_ind,nom**1,adj,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,pro_per_con+,pro_per**2,adv+,art_def,art_def+,nom**2,adj+,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux|ver*1,pro_per_con+,pro_per*2,adv+,art_ind,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1,pro_per_con+,pro_per*2,adv+,art_ind,nom**1,question';
 			} elseif ($action[$rand] == 'sug') {
+				if(empty($response['ver'])){
+					$modele[] = 'pro_per,aux*1,adv+,ver_past,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_def,art_def+,nom**2,dot';
+					$modele[] = 'pro_per,aux*1,ver_past,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,adj**2,dot';
+				}
 				$modele[] = 'pro_per,ver**1,art_def|adj_num|adj_pos,other,adj+,art_def,art_def+,nom|other**2,dot';
-				$modele[] = 'pro_per,aux*1,adv+,ver_past,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_def,art_def+,nom**2,dot';
-				$modele[] = 'pro_per,aux*1,ver_past,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,adj**2,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,adv+,art_ind,nom**1,adj+**1,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,adv+,art_def,art_def+,nom**2,adj+**1,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,adv+,art_ind,nom**1,dot';
@@ -608,12 +643,14 @@
 			
 			
 			/* PAST PARTICIPLE */
-			$modele[] = 'pro_per,aux*1,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,dot';
-			$modele[] = 'aux,pro_per*1,adv+,ver_past**2,art_ind,nom|other**1,adj+**1,question';
-			$modele[] = 'art_def,art_def+,nom|other**2,aux*1,adv+,ver_past**3,dot';
-			$modele[] = 'pro_per,aux*1,ver_past**2,art_ind,nom|other**1,adj+**1,dot';
-			$modele[] = 'pro_per|pro_dem|pro_ind,aux*1,ver_past**2,dot';
-			$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
+			if(empty($response['ver'])){
+				$modele[] = 'pro_per,aux*1,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,dot';
+				$modele[] = 'aux,pro_per*1,adv+,ver_past**2,art_ind,nom|other**1,adj+**1,question';
+				$modele[] = 'art_def,art_def+,nom|other**2,aux*1,adv+,ver_past**3,dot';
+				$modele[] = 'pro_per,aux*1,ver_past**2,art_ind,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per|pro_dem|pro_ind,aux*1,ver_past**2,dot';
+				$modele[] = 'aux,pro_per_con+,pro_per*2,adv+,ver_past**2,question';
+			}
 			/* END OF PAST PARTICIPLE */
 			
 			/* INFINITIF VERBS */
@@ -627,27 +664,33 @@
 			/* END OF INFINITIF VERBS */
 			
 			if ($action[$rand] == 'rep') {
-				$modele[] = 'aux,pro_per_con+,pro_per*2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per,aux*1,adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per|pro_dem|pro_ind,aux*1,adv+,ver_past,question';
-				$modele[] = 'aux,pro_per*1,art_def,art_def+,nom|other**2,adj+**1,question';
-				$modele[] = 'aux,pro_per*1,art_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'pro_per|pro_dem|pro_ind,aux|ver*1,adv+,question';
-				$modele[] = 'pro_int,aux|ver,pro_per_con+,pro_per*2,question';
+				if(empty($response['ver'])){
+					$modele[] = 'aux,pro_per_con+,pro_per*2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
+					$modele[] = 'pro_per,aux*1,adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
+					$modele[] = 'pro_per|pro_dem|pro_ind,aux*1,adv+,ver_past,question';
+					$modele[] = 'aux,pro_per*1,art_def,art_def+,nom|other**2,adj+**1,question';
+					$modele[] = 'aux,pro_per*1,art_ind,nom|other**1,adj+**1,question';
+				}
+				$modele[] = 'pro_per|pro_dem|pro_ind,ver|aux*1,adv+,question';
+				$modele[] = 'pro_int,ver|aux,pro_per_con+,pro_per*2,question';
 				$modele[] = 'nom|other,question';
 				$modele[] = 'ono,question';
 			} elseif ($action[$rand] == 'sug') {
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,adv+,other,dot';
-				$modele[] = 'pro_per,aux*1,adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**3,dot';
-				$modele[] = 'pro_per,aux|ver*1,art_def,art_def+,nom|other**2,adj+**1,dot';
+				if(empty($response['ver'])){
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1,adv+,other,dot';
+					$modele[] = 'pro_per,aux*1,adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**3,dot';
+				}
+				$modele[] = 'pro_per,ver|aux*1,art_def,art_def+,nom|other**2,adj+**1,dot';
 				$modele[] = 'ver,pro_per_con+,pro_per*1,lia,ver_inf,art_def,art_def+,nom|other**2,adj+**1,dot';
-				$modele[] = 'pro_per,aux|ver*1,art_ind,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per,aux|ver*1,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per,aux*1,art_ind,nom|other**1,adj+**1,dot';
-				$modele[] = 'art_def,art_def+,nom|other**2,aux*1,adv+,adj+**3,dot';
-				$modele[] = 'adj_num|adj_pos|pro_ind,nom|other**1,aux*1,adv+,adj+**3,dot';
-				$modele[] = 'pro_per|pro_dem|pro_ind,aux*1,adv+,adj+,dot';
-				$modele[] = 'pro_per|pro_dem|pro_ind,aux|ver*1,dot';
+				$modele[] = 'pro_per,ver|aux*1,art_ind,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per,ver|aux*1,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,dot';
+				if(empty($response['ver'])){
+					$modele[] = 'pro_per,aux*1,art_ind,nom|other**1,adj+**1,dot';
+					$modele[] = 'art_def,art_def+,nom|other**2,aux*1,adv+,adj+**3,dot';
+					$modele[] = 'adj_num|adj_pos|pro_ind,nom|other**1,aux*1,adv+,adj+**3,dot';
+					$modele[] = 'pro_per|pro_dem|pro_ind,aux*1,adv+,adj+,dot';
+				}
+				$modele[] = 'pro_per|pro_dem|pro_ind,ver|aux*1,dot';
 				$modele[] = 'nom|other,dot';
 				$modele[] = 'ono,dot';
 			}
@@ -884,6 +927,14 @@
 				$response = (!empty($build_container)) ? implode(' ', $build_container) : '';
 				$response = str_replace('\' ', '\'', $response);
 				$response = str_replace(' .', '.', $response);
+				
+				if(in_array($response, use_session('last_response_'.$type_bot))){
+					$response = '';
+				} else {
+					$array = use_session('last_response_'.$type_bot);
+					$array[] = $response;
+					write_session('last_response_'.$type_bot, $array);
+				}
 						
 				if(!empty($response)){
 					$response = explode(' ', $response);

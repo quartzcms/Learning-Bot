@@ -173,17 +173,9 @@
 										$(".predefined").click(function() {
 											$("#question").val($(this).text()); 
 										});
-										
-										$('#ask').on('submit', function(event) {
-											var $this = $(this);
-											
-											if($('#question').val() != '') {
-												$("#question").css('display', 'none');
-												$("#submit").css('display', 'none');
-												$('#loading').css('display', 'block');
-
-												$(".response").prepend("<p>Me: " + $('#question').val() + "</p>");
-												
+										var o = 0;
+										var load = function($this, o){
+											setTimeout(function(){
 												$.ajax({
 													url: $this.attr('action'),
 													type: $this.attr('method'),
@@ -196,7 +188,7 @@
 														$('.learning-next-sentence .answer').html('');
 													
 														if(json.response != '') {
-															$(".response").prepend("<p>Julie: <span>" + json.response + "</span></p>");
+															$(".response").prepend("<p>Julie: <span>" + json.response +"</span></p>");
 														}
 														
 														if(json.analyse != '') {
@@ -218,9 +210,6 @@
 														if(json.query != '') {
 															console.log(json.query);
 														}
-														$("#question").css('display', 'block');
-														$("#submit").css('display', 'inline-block');
-														$('#loading').css('display', 'none');
 														
 														<?php
 															if(use_session('language') && use_session('language') == 'en'){
@@ -238,10 +227,32 @@
 															} 
 														?>
 													}
+												}).done(function() {
+													o++;
+													if(o == 5){
+														$("#question").css('display', 'block');
+														$("#submit").css('display', 'inline-block');
+														$('#loading').css('display', 'none');
+														
+														$('#question').focus();
+														$('#question').val('');
+													}
+													if(o < 5){
+														load($this, o);
+													}	
 												});
-												
-												$('#question').val('');
-												$('#question').focus();
+											}, 3000);
+										}
+										
+										$('#ask').on('submit', function(event) {
+											var $this = $(this);
+											if($('#question').val() != '') {
+												$("#question").css('display', 'none');
+												$("#submit").css('display', 'none');
+												$('#loading').css('display', 'block');
+
+												$(".response").prepend("<p>Me: " + $('#question').val() + "</p>");
+												load($this, 0);
 											}
 										});
 									});	
