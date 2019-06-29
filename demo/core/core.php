@@ -26,35 +26,17 @@ class core {
 		$this->response = $response;
 		
 		/* Create pattern to store */
-		
-		$this->pattern_learn = mb_strtolower((implode(' ', $this->question_array)), 'UTF-8');
-		$this->pattern_learn = str_replace('\'', ' ', $this->pattern_learn);
-		$this->pattern_learn = str_replace(' ', '} {', '{'.$this->pattern_learn.'}');
-		foreach($this->build_memory as $key => $words){
-			foreach($words as $word_key => $word_value){
-				$tag = '('.str_replace(':', '_', mb_strtolower($key, 'UTF-8')).')';
-				$label = str_replace(':', '_', mb_strtolower($key, 'UTF-8'));
-				if(isset($word_value['ortho'])){
-					if(in_array($word_value['ortho'], $this->question_array) && isset($this->response[$label]) && !empty($this->response[$label])){
-						$this->pattern_learn = str_replace('{'.$word_value['ortho'].'}', $tag, $this->pattern_learn);
-					}
-				}
-			}
+		$this->pattern_learn = array();
+		foreach($this->question_array as $key => $words){
+			$label = str_replace(':', '_', mb_strtolower($words['cgram'], 'UTF-8'));
+			$this->pattern_learn[] = "{".$label."}";
 		}
-		
-		$this->pattern_learn = str_replace('} {', ' ', $this->pattern_learn);
-		$this->pattern_learn = str_replace('{', '', $this->pattern_learn);
-		$this->pattern_learn = str_replace('}', '', $this->pattern_learn);
-		$this->pattern_learn = str_replace('(', '{', $this->pattern_learn);
-		$this->pattern_learn = str_replace(')', '}', $this->pattern_learn);
+		$this->pattern_learn = implode(' ', $this->pattern_learn);
 		
 		/* Create sentence to store from pattern with new response array */
-		
-		$pattern = str_replace(' {', '{', $this->pattern_learn);
-		$pattern = str_replace('} ', '}', $pattern);
-		$pattern = preg_split('/[\{,\}]/', $pattern);
-		$pattern_chosen = implode(',', array_filter($pattern, function($value) { return $value !== ''; }));
-		
+		$pattern = str_replace('{', '', $this->pattern_learn);
+		$pattern = str_replace('}', '', $pattern);
+		$pattern = explode(' ', $pattern);
 		$unique = array();
 		foreach($pattern as $key => $value){
 			if(isset($response[$value]) && !empty($response[$value])){
@@ -66,8 +48,12 @@ class core {
 					$unique[$value]++;
 				}
 			}
+			if($value == "OTHER"){
+				if(isset($this->question_array[$key])){
+					$pattern[$key] = $this->question_array[$key];
+				}
+			}
 		}
-		$pattern = array_filter($pattern, function($value) { return $value !== ''; });
 		foreach($pattern as $key => $value) {
 			if(
 				$value == 'j' ||

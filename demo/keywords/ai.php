@@ -145,6 +145,8 @@
 		$_POST['question'] = str_replace('-les', ' les', $_POST['question']);
 		$_POST['question'] = str_replace('\'', ' ', $_POST['question']);
 		$_POST['question'] = str_replace('.', '', $_POST['question']);
+		$_POST['question'] = str_replace(':', '', $_POST['question']);
+		$_POST['question'] = str_replace(';', '', $_POST['question']);
 		$_POST['question'] = str_replace(',', '', $_POST['question']);
 		$_POST['question'] = mb_strtolower($_POST['question'], 'UTF-8');
 		$question_array = preg_split("/[\s]/", trim(str_replace('?', '', $_POST['question']), ' '));
@@ -184,6 +186,10 @@
 				$test = 0;
 				foreach($build_memory['OTHER'] as $key2 => $value2){
 					if($value2['ortho'] == $value){
+						$path_array[$key]['ortho'] = $value;
+						$path_array[$key]['cgram'] = 'OTHER';
+						$path_array[$key]['genre'] = '';
+						$path_array[$key]['nombre'] = '';
 						$test = 1;
 					}
 				}
@@ -333,7 +339,6 @@
 				}
 			}
 		}
-		
 		$accepted = array('other', 'nom', 'ver', 'adj');
 		$array_= use_session('links_'.$type_bot);
 		foreach($accepted as $key => $value) {
