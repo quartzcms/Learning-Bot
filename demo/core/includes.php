@@ -8,7 +8,7 @@
 		'action' => $action,
 		'rand' => $rand,
 		'type_bot' => $type_bot,
-		'question_array' => $question_array
+		'question_array' => $path_array
 	);
 	include('../types/_default.php');
 	$default = '_default';

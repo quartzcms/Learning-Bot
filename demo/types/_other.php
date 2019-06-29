@@ -22,6 +22,10 @@ class other {
 		if(isset($this->build_memory['OTHER'])){
 			foreach($this->build_memory['OTHER'] as $word_key => $word_value){
 				$this->response['other'][] = $word_value['ortho'];
+				$cgram = 'other';				
+				$this->response_temp[$cgram][$word_key]['ortho'] = !empty($word_value['ortho']) ? $word_value['ortho'] : '';
+				$this->response_temp[$cgram][$word_key]['nombre'] = '';
+				$this->response_temp[$cgram][$word_key]['genre'] = '';
 			}
 		}
 		return array(
