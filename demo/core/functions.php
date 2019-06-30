@@ -273,7 +273,7 @@
 				$pro = 'il';
 				$detect = 0;
 				foreach($path_array as $key4 => $value4){
-					if($value4['cgram'] == 'PRO:per' || $value4['cgram'] == 'PRO:dem'){
+					if(($value4['cgram'] == 'PRO:per' || $value4['cgram'] == 'PRO:dem') && $after_verb == $value4['ortho']){
 						$detect = 1;
 						break;
 					}
@@ -426,6 +426,7 @@
 						if(!empty($pro_per)){
 							if(!empty($after_verb)){
 								$path_array[$id_pronouns]['new'] = $pro_per;
+								$path_array[$id_pronouns]['existing'] = 1;
 							} else {
 								$path_array[$key]['insert_before'] = 1;
 								$inserted = array();
@@ -452,7 +453,7 @@
 		}
 		
 		foreach($path_array2 as $key => $value){
-			if(!isset($path_array2[$key]['added']) && $path_array2[$key]['cgram'] == 'PRO:per'){
+			if(!isset($path_array2[$key]['added']) && !isset($path_array2[$key]['existing']) && $path_array2[$key]['cgram'] == 'PRO:per'){
 				$pro_per2 = $path_array2[$key]['ortho'];
 				$pro3 = $path_array2[$key]['ortho'];
 				if ($pro3 == 'j' || $pro3 == 'je'){
