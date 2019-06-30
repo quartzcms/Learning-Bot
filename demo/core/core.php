@@ -1,7 +1,6 @@
 <?php
 
 class core {
-	protected $build_memory;
 	protected $connexion;
     protected $action;
 	protected $rand;
@@ -14,7 +13,6 @@ class core {
     protected $question_array;
 	
 	public function __construct($variables) {
-		$this->build_memory = $variables['build_memory'];
 		$this->connexion = $variables['connexion'];
 		$this->action = $variables['action'];
 		$this->rand = $variables['rand'];
@@ -22,39 +20,29 @@ class core {
 		$this->question_array = $variables['question_array'];
     }
 	
-	public function createPatterns($response) {
-		$this->response = $response;
-		
+	public function createPatterns() {
 		/* Create pattern to store */
 		$this->pattern_learn = array();
 		foreach($this->question_array as $key => $words){
-			$label = str_replace(':', '_', mb_strtolower($words['cgram'], 'UTF-8'));
-			$this->pattern_learn[] = "{".$label."}";
+			if(!isset($this->question_array[$key]['added'])){
+				$label = str_replace(':', '_', mb_strtolower($words['cgram'], 'UTF-8'));
+				$this->pattern_learn[] = "{".$label."}";
+			}
 		}
 		$this->pattern_learn = implode(' ', $this->pattern_learn);
 		
 		/* Create sentence to store from pattern with new response array */
-		$pattern = str_replace('{', '', $this->pattern_learn);
-		$pattern = str_replace('}', '', $pattern);
-		$pattern = explode(' ', $pattern);
 		$unique = array();
-		foreach($pattern as $key => $value){
-			if(isset($response[$value]) && !empty($response[$value])){
-				if(!isset($unique[$value])){
-					$unique[$value] = 0;
-				}
-				if(isset($response[$value][$unique[$value]])){
-					$pattern[$key] = $response[$value][$unique[$value]];
-					$unique[$value]++;
-				}
-			}
-			if($value == "OTHER"){
-				if(isset($this->question_array[$key])){
-					$pattern[$key] = $this->question_array[$key];
+		foreach($this->question_array as $key => $value){
+			if(!isset($this->question_array[$key]['added'])){
+				if(isset($this->question_array[$key]['new'])){
+					$unique[] = $this->question_array[$key]['new'];
+				} else {
+					$unique[] = $this->question_array[$key]['ortho'];
 				}
 			}
 		}
-		foreach($pattern as $key => $value) {
+		foreach($unique as $key => $value) {
 			if(
 				$value == 'j' ||
 				$value == 'l' ||
@@ -65,39 +53,30 @@ class core {
 				$value == 'd' ||
 				$value == 'n'
 			) {
-				$pattern[$key] = $value.'\'';
+				$unique[$key] = $value.'\'';
 			}
 		}
 		
-		$pattern = str_replace('\' ','\'',  html_entity_decode(implode(' ', $pattern), ENT_QUOTES | ENT_XML1, 'UTF-8'));
+		$pattern = str_replace('\' ','\'',  html_entity_decode(implode(' ', $unique), ENT_QUOTES | ENT_XML1, 'UTF-8'));
 		$this->pattern_sentence = $pattern;
 	}
 	
-	public function prepareDataInsert($response) {
-		$this->response = $response;
+	public function prepareDataInsert() {
 		$this->data_to_insert = array();
 		$this->data_to_verify = array();
 		
-		foreach($this->build_memory as $key => $value){
-			if(is_array($this->build_memory[$key])){
-				$index = str_replace(':', '_', mb_strtolower($key, 'UTF-8'));
-				if(!empty($index)){
-					if(!empty($this->response[$index]) && isset($this->response[$index])){
-						$this->data_to_verify[$index] = $this->response[$index];
-						$add = array(); 
-						foreach($this->response[$index] as $word_key => $word_value){
-							$add[] = html_entity_decode($word_value, ENT_QUOTES | ENT_XML1, 'UTF-8');
-						}
-						$this->data_to_insert[$index] = addslashes(json_encode($add, JSON_FORCE_OBJECT|JSON_UNESCAPED_UNICODE));
-					}
-				}
-			}
+		foreach($this->question_array as $key => $value){
+			$index = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
+			$this->data_to_verify[$index][] = html_entity_decode($value['ortho'], ENT_QUOTES | ENT_XML1, 'UTF-8');
+			$this->data_to_insert[$index][] = html_entity_decode($value['ortho'], ENT_QUOTES | ENT_XML1, 'UTF-8');
+		}
+		foreach($this->data_to_insert as $key => $value){
+			$this->data_to_insert[$key] = addslashes(json_encode($value, JSON_FORCE_OBJECT|JSON_UNESCAPED_UNICODE));
 		}
 	}
 	
-	public function dataInsert($response, $memory_insert, $append_data) {
+	public function dataInsert($memory_insert, $append_data) {
 		$query = array();
-		$this->response = $response;
 		foreach($this->data_to_verify as $key => $value){
 			if(!empty($this->data_to_verify[$key]) && isset($this->data_to_verify[$key])){
 				$build_conditions = array();
@@ -110,10 +89,8 @@ class core {
 			}
 		}
 		if(!empty($query)){
-			//$query = 'WHERE '.implode(' AND ', $query).' AND ip = \''.$_SERVER['REMOTE_ADDR'].'\'';
 			$query = 'WHERE '.implode(' AND ', $query);
 		} else {
-			//$query = 'WHERE ip = \''.$_SERVER['REMOTE_ADDR'].'\'';
 			$query = '';
 		}
 				
