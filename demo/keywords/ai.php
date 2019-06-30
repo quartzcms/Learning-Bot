@@ -208,16 +208,8 @@
 					if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) &&
-						/*isset($question_array[$key - 2]) &&
-						isset($words_kept_array[$question_array[$key - 2]]) && */(
-							(
-								in_array('ART:def', $words_kept_array[$question_array[$key - 1]])/* &&
-								$row['cgram'] != 'VER:inf' &&
-								(
-									in_array('ART:def', $words_kept_array[$question_array[$key - 2]]) || 
-									in_array('CON', $words_kept_array[$question_array[$key - 2]])
-								)*/
-							) ||
+						(
+							in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
@@ -252,8 +244,7 @@
 					if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
-							in_array('AUX', $words_kept_array[$question_array[$key - 1]]) /*&&
-							$question_array[$key - 1] != 'est'*/
+							in_array('AUX', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:inf')
 					){
 						$trigger = 0;
@@ -309,15 +300,6 @@
 						$trigger = 0;
 					}
 					
-					/*if(
-						isset($question_array[$key - 1]) &&
-						isset($words_kept_array[$question_array[$key - 1]]) && (
-							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
-						) && ($row['cgram'] == 'PRO:ind')
-					){
-						$trigger = 0;
-					}*/
-					
 					if($trigger == 1 && !in_array(format_word($row['ortho']), $types)){
 						$build_memory[$row['cgram']][] = array(
 							'ortho' => mb_strtolower(($row['ortho']), 'UTF-8'),
@@ -332,34 +314,36 @@
 						$words_kept_array2[$row['ortho']][$row['id']] = $row['infover'];
 						$path_array[$key]['ortho'] = $row['ortho'];
 						$path_array[$key]['cgram'] = $row['cgram'];
-						$path_array[$key]['genre'] = $row['genre'];
-						$path_array[$key]['nombre'] = $row['nombre'];
+						$path_array[$key]['lemme'] = $row['lemme'];
+						$path_array[$key]['infover'] = $row['infover'];
+						$path_array[$key]['genre'] = !empty($row['genre']) ? $row['genre'] : 'm';
+						$path_array[$key]['nombre'] = !empty($row['nombre']) ? $row['nombre'] : 's';
 					}
 					if($trigger == 1) { $types[]= format_word($row['ortho']); }
 				}
 			}
 		}
+		
+		foreach($path_array as $key => $value){
+			if($value['cgram'] == 'ADJ:pos'){
+				$reverse = mysqli_query($connexion, "SELECT * FROM adj_pos WHERE keyword = '".addslashes($value['ortho'])."' COLLATE utf8_bin LIMIT 1") or die (mysqli_error($connexion));
+				if(mysqli_num_rows($reverse) > 0){
+					$row = mysqli_fetch_assoc($reverse);
+					$path_array[$key]['new'] = $row['match'];
+				}
+			} 
+		}
+		
 		$accepted = array('other', 'nom', 'ver', 'adj');
 		$array_= use_session('links_'.$type_bot);
 		foreach($accepted as $key => $value) {
-			if(isset($build_memory[strtoupper($value)])) {
-				foreach($build_memory[strtoupper($value)] as $word_key => $word_value){
-					if(isset($array_[$value]) && !in_array($word_value['ortho'], $array_[$value])){
-						$array_[$value][] = $word_value['ortho'];
-					}
+			foreach($path_array as $word_key => $word_value){
+				if(isset($array_[$value]) && !in_array($word_value['ortho'], $array_[$value])){
+					$array_[$value][] = $word_value['ortho'];
 				}
 			}
 		}
 		write_session('links_'.$type_bot, $array_);
-		
-		$groups = array('adj', 'adv', 'art', 'aux', 'con', 'lia', 'nom', 'ono', 'other', 'pre', 'pro', 'ver', 'adj_dem', 'adj_ind', 'adj_int', 'adj_num', 'adj_pos', 'art_def', 'art_inf', 'pro_dem', 'pro_ind', 'pro_int', 'pro_per', 'pro_pos', 'pro_rel', 'pro_per_con', 'ver_inf', 'ver_past');
-		foreach($groups as $value){
-			$response[$value] = array();
-		}
-		
-		$response3['pro_per'] = array();
-		$response['pro_g'] = array();
-		$response['pro_n'] = array();
 		
 		$action = array('sug', 'rep');
 		$rand = rand(0,1);
@@ -368,8 +352,16 @@
 		$memory_insert = 0;
 		
 		if($wiki_later == 1){
-			if(isset($build_memory['NOM'][0])){
-				$data = file_get_contents('https://'.$wiki_lang.'wikipedia.org/w/api.php?action=opensearch&search='.$build_memory['NOM'][0]['ortho'].'&limit=1&format=json');
+			$name = '';
+			foreach($path_array as $key => $value){
+				if($value['cgram'] == 'NOM'){
+					$name = $value['ortho'];
+					break;
+				}
+			}
+			
+			if(!empty($name)){
+				$data = file_get_contents('https://'.$wiki_lang.'wikipedia.org/w/api.php?action=opensearch&search='.$name.'&limit=1&format=json');
 				$data = json_decode($data, true);
 				$description = array();
 				if(isset($data[2][0]) && !empty($data[2][0]) && substr($data[2][0], -1) == '.') { 
@@ -382,73 +374,71 @@
 			}
 		}
 		
-		if(!isset($build_memory['PRO:int'])){
+		$detect = 0;
+		foreach($path_array as $key => $value){
+			if($value['cgram'] == 'PRO:int'){
+				$detect = 1;
+				break;
+			}
+		}
+		if($detect == 0){
 			$appendToResponse = '';
 		}
 		
-		$response_temp = array();
-		foreach($groups as $value){
-			$response_temp[$value] = array();
-		}
-		
-		include('../core/includes.php');
-		include('../core/loops.php');
-		
 		/* VERBS */
-		$verbs_and_pronouns = renderVerbs($reason, $verbs, $response, $response_temp, $path_array, $build_memory, $connexion);
+		$verbs_and_pronouns = renderVerbs($reason, $path_array, $connexion);
 		extract($verbs_and_pronouns, EXTR_OVERWRITE);
-		/* CLEAN PRONOUNS */
-		unset($response['pro_g']);
-		unset($response['pro_n']);
+		
 		/* CORE */
+		$variables = array(
+			'connexion' => $connexion,
+			'action' => $action,
+			'rand' => $rand,
+			'type_bot' => $type_bot,
+			'question_array' => $path_array
+		);
 		$core = new core($variables);
 		
 		if(isset($build_memory['ADJ:pos']) || $trigger_verb == 'learn' || $freecard == 1){
 			$order_pro_ver = array();
-			$core->createPatterns($response);
-			$core->prepareDataInsert($response);
-			$inserted_data = $core->dataInsert($response, $memory_insert, $append_data);
+			$core->createPatterns();
+			$core->prepareDataInsert();
+			$inserted_data = $core->dataInsert($memory_insert, $append_data);
 			extract($inserted_data, EXTR_OVERWRITE);
-		}
-		$response['pro_per'] = $last2;
-		foreach($groups as $value){
-			$response[$value] = !empty($response[$value]) ? array_values($response[$value]) : array();
-		}
-		foreach($groups as $value){
-			$response_temp[$value] = !empty($response_temp[$value]) ? array_values($response_temp[$value]) : array();
 		}
 		
 		$new_sentence = '';
-		$new_sentence .= (is_array($response['ver']) ? implode($response['ver']) : '');
-		$new_sentence .= (is_array($response['nom']) ? implode($response['nom']) : '');
+		foreach($path_array as $key => $value){
+			if($value['cgram'] == 'VER'){
+				$new_sentence .= $value['ortho'];
+			}
+		}
+		foreach($path_array as $key => $value){
+			if($value['cgram'] == 'NOM'){
+				$new_sentence .= $value['ortho'];
+			}
+		}
 		
 		$data = '';
 		$response2 = array();
 		$query4 = array();
 		
 		$accepted = array('nom', 'other', 'adj', 'ver');		
-		if(isset($build_memory) && !empty($build_memory) && $memory_insert != 1){
-			foreach($build_memory as $key => $value){
-				
-				if(!empty($build_memory[$key]) && isset($build_memory[$key])){
-					$build_conditions4 = array();
-					$new = array();
-					$index = str_replace(':', '_', mb_strtolower($key, 'UTF-8'));
-					
-					foreach($value as $word_key => $word_value){
-						if(isset($response[$index])){
-							if(in_array($index, $accepted)){
-								$build_conditions4[] = 'keywords LIKE \'%"'.addslashes($word_value['ortho']).'"%\'';
-							}
-						}
-					}
-					if(!empty($build_conditions4)){
-						if(!empty($build_conditions4)){
-							$query4[] = '('.implode(' COLLATE utf8_bin OR ', $build_conditions4).' COLLATE utf8_bin)';
-						}
-					}
+		if($memory_insert != 1){
+			foreach($path_array as $key => $value){
+				$build_conditions4 = array();
+				$new = array();
+				$index = str_replace(':', '_', mb_strtolower($key['cgram'], 'UTF-8'));
+				if(in_array($index, $accepted)){
+					$build_conditions4[$index][] = 'keywords LIKE \'%"'.addslashes($value['ortho']).'"%\'';
 				}
 			}
+			foreach($build_conditions4 as $key => $value){
+				if(!empty($build_conditions4[$key])){
+					$query4[] = '('.implode(' COLLATE utf8_bin OR ', $build_conditions4).' COLLATE utf8_bin)';
+				}
+			}
+			
 			if(!empty($query4)){
 				$query_used = '';
 				$query_links = '';
@@ -457,7 +447,6 @@
 				}
 				
 				$links = array();
-				$accepted = array('other', 'nom', 'ver', 'adj');
 				foreach($accepted as $key1 => $value1) {
 					$array_ = use_session('links_'.$type_bot);
 					if(isset($array_[$value1]) && !empty($array_[$value1])){
@@ -584,6 +573,21 @@
 			return 0;
 		}
 		
+		$response = array();
+		foreach($path_array as $key => $value){
+			$value2 = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
+			if(isset($value['new'])){
+				$response[$value2][] = $value['new'];
+			} else {
+				$response[$value2][] = $value['ortho'];
+			}
+		}
+		$response_temp = array();
+		foreach($path_array as $key => $value){
+			$value2 = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
+			$response_temp[$value2][] = $value;
+		}
+		
 		if(!isset($pattern)){
 			$build_sentence = array();
 			$build_container = array();
@@ -704,11 +708,9 @@
 			$sentence_order = array();
 			//This foreach test if the modele match the number of response type values or if response has any value for the modele value
 			foreach($modele as $modele_key => $modele_value){
-				//$bad_connection = 0;
 				$kept_ones = array();
 				$recreate = array();
 				$tags_new = explode(',', $modele_value);
-				//$i = 0;
 				$not = 0;				
 				foreach($tags_new as $key => $tag){
 					if($tag != 'question' && $tag != 'dot'){
@@ -830,19 +832,6 @@
 						if(count($tag_split) > 1){
 							foreach($tag_split as $tag_split_value){
 								if(!empty($response[$tag_split_value])){
-									if(
-										(isset($sentence_order2[$tag_key + 1]) && 
-										(($tag_split_value == 'ver' && $sentence_order2[$tag_key + 1] == 'pro_per') ||
-										($tag_split_value == 'aux' && $sentence_order2[$tag_key + 1] == 'pro_per')))
-									){
-										foreach($response['pro_per'] as $word_key => $word_value){
-											if($word_value == 'j'){
-												$response['pro_per'][$word_key] = 'je';
-												break;
-											}
-										}
-									}
-									
 									if(in_array($tag_split_value, $last_check)){
 										if(isset($response[$tag_split_value][0])){
 											unset($response[$tag_split_value][0]);
@@ -864,19 +853,6 @@
 						} else {
 							$tag_value = str_replace('+', '', $tag_value);
 							if(!empty($response[$tag_value])){
-								if(
-									(isset($sentence_order[$tag_key + 1]) && 
-									(($tag_value == 'ver' && $sentence_order2[$tag_key + 1] == 'pro_per') ||
-									($tag_value == 'aux' && $sentence_order2[$tag_key + 1] == 'pro_per')))
-								){
-									foreach($response['pro_per'] as $word_key => $word_value){
-										if($word_value == 'j'){
-											$response['pro_per'][$word_key] = 'je';
-											break;
-										}
-									}
-								}
-								
 								if(in_array($tag_value, $last_check)){
 									if(isset($response[$tag_value][0])){
 										unset($response[$tag_value][0]);
