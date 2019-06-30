@@ -832,6 +832,19 @@
 						if(count($tag_split) > 1){
 							foreach($tag_split as $tag_split_value){
 								if(!empty($response[$tag_split_value])){
+									if(
+										(isset($sentence_order2[$tag_key + 1]) && 
+										(($tag_split_value == 'ver' && $sentence_order2[$tag_key + 1] == 'pro_per') ||
+										($tag_split_value == 'aux' && $sentence_order2[$tag_key + 1] == 'pro_per')))
+									){
+										foreach($response['pro_per'] as $word_key => $word_value){
+											if($word_value == 'j'){
+												$response['pro_per'][$word_key] = 'je';
+												break;
+											}
+										}
+									}
+									
 									if(in_array($tag_split_value, $last_check)){
 										if(isset($response[$tag_split_value][0])){
 											unset($response[$tag_split_value][0]);
@@ -853,6 +866,19 @@
 						} else {
 							$tag_value = str_replace('+', '', $tag_value);
 							if(!empty($response[$tag_value])){
+								if(
+									(isset($sentence_order[$tag_key + 1]) && 
+									(($tag_value == 'ver' && $sentence_order2[$tag_key + 1] == 'pro_per') ||
+									($tag_value == 'aux' && $sentence_order2[$tag_key + 1] == 'pro_per')))
+								){
+									foreach($response['pro_per'] as $word_key => $word_value){
+										if($word_value == 'j'){
+											$response['pro_per'][$word_key] = 'je';
+											break;
+										}
+									}
+								}
+								
 								if(in_array($tag_value, $last_check)){
 									if(isset($response[$tag_value][0])){
 										unset($response[$tag_value][0]);
