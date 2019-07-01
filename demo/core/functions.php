@@ -3,7 +3,7 @@
 		$pronouns = array();
 		$insert_before = array();
 		foreach($path_array as $key => $value){
-			if($value['cgram'] == 'AUX' || $value['cgram'] == 'VER:inf' || $value['cgram'] == 'VER:past' || $value['cgram'] == 'VER') {
+			if(isset($value['cgram']) && ($value['cgram'] == 'AUX' || $value['cgram'] == 'VER:inf' || $value['cgram'] == 'VER:past' || $value['cgram'] == 'VER')) {
 				$tenses = $value['infover'];
 				$after_verb = '';
 				$pre_verb = '';
@@ -273,7 +273,7 @@
 				$pro = 'il';
 				$detect = 0;
 				foreach($path_array as $key4 => $value4){
-					if(($value4['cgram'] == 'PRO:per' || $value4['cgram'] == 'PRO:dem') && $after_verb == $value4['ortho']){
+					if(isset($value4['cgram']) && isset($value4['ortho']) && ($value4['cgram'] == 'PRO:per' || $value4['cgram'] == 'PRO:dem') && $after_verb == $value4['ortho']){
 						$detect = 1;
 						break;
 					}
@@ -368,7 +368,7 @@
 					$pro_per = 'il';
 					
 					foreach($path_array as $key4 => $value4){	
-						if($value4['cgram'] == "PRO:per" && $value4['ortho'] == $pro) {
+						if(isset($value4['cgram']) && $value4['cgram'] == "PRO:per" && $value4['ortho'] == $pro) {
 							if($value4['genre'] == 'f'){
 								$pro_per = 'elle';
 								$pro_genre = 'f';
@@ -453,7 +453,7 @@
 		}
 		
 		foreach($path_array2 as $key => $value){
-			if(!isset($path_array2[$key]['added']) && !isset($path_array2[$key]['existing']) && $path_array2[$key]['cgram'] == 'PRO:per'){
+			if(!isset($path_array2[$key]['added']) && !isset($path_array2[$key]['existing']) && isset($path_array2[$key]['cgram']) && $path_array2[$key]['cgram'] == 'PRO:per'){
 				$pro_per2 = $path_array2[$key]['ortho'];
 				$pro3 = $path_array2[$key]['ortho'];
 				if ($pro3 == 'j' || $pro3 == 'je'){

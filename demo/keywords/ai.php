@@ -325,7 +325,7 @@
 		}
 		
 		foreach($path_array as $key => $value){
-			if($value['cgram'] == 'ADJ:pos'){
+			if(isset($value['cgram']) && isset($value['ortho']) && $value['cgram'] == 'ADJ:pos'){
 				$reverse = mysqli_query($connexion, "SELECT * FROM adj_pos WHERE keyword = '".addslashes($value['ortho'])."' COLLATE utf8_bin LIMIT 1") or die (mysqli_error($connexion));
 				if(mysqli_num_rows($reverse) > 0){
 					$row = mysqli_fetch_assoc($reverse);
@@ -354,7 +354,7 @@
 		if($wiki_later == 1){
 			$name = '';
 			foreach($path_array as $key => $value){
-				if($value['cgram'] == 'NOM'){
+				if(isset($value['cgram']) && $value['cgram'] == 'NOM'){
 					$name = $value['ortho'];
 					break;
 				}
@@ -376,7 +376,7 @@
 		
 		$detect = 0;
 		foreach($path_array as $key => $value){
-			if($value['cgram'] == 'PRO:int'){
+			if(isset($value['cgram']) && $value['cgram'] == 'PRO:int'){
 				$detect = 1;
 				break;
 			}
@@ -409,12 +409,12 @@
 		
 		$new_sentence = '';
 		foreach($path_array as $key => $value){
-			if($value['cgram'] == 'VER'){
+			if(isset($value['cgram']) && $value['cgram'] == 'VER'){
 				$new_sentence .= $value['ortho'];
 			}
 		}
 		foreach($path_array as $key => $value){
-			if($value['cgram'] == 'NOM'){
+			if(isset($value['cgram']) && $value['cgram'] == 'NOM'){
 				$new_sentence .= $value['ortho'];
 			}
 		}
@@ -428,14 +428,14 @@
 			foreach($path_array as $key => $value){
 				$build_conditions4 = array();
 				$new = array();
-				$index = str_replace(':', '_', mb_strtolower($key['cgram'], 'UTF-8'));
+				$index = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
 				if(in_array($index, $accepted)){
 					$build_conditions4[$index][] = 'keywords LIKE \'%"'.addslashes($value['ortho']).'"%\'';
 				}
 			}
 			foreach($build_conditions4 as $key => $value){
-				if(!empty($build_conditions4[$key])){
-					$query4[] = '('.implode(' COLLATE utf8_bin OR ', $build_conditions4).' COLLATE utf8_bin)';
+				if(!empty($value)){
+					$query4[] = '('.implode(' COLLATE utf8_bin OR ', $value).' COLLATE utf8_bin)';
 				}
 			}
 			
@@ -575,17 +575,21 @@
 		
 		$response = array();
 		foreach($path_array as $key => $value){
-			$value2 = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
-			if(isset($value['new'])){
-				$response[$value2][] = $value['new'];
-			} else {
-				$response[$value2][] = $value['ortho'];
+			if(isset($value['cgram'])){
+				$value2 = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
+				if(isset($value['new'])){
+					$response[$value2][] = $value['new'];
+				} else {
+					$response[$value2][] = $value['ortho'];
+				}
 			}
 		}
 		$response_temp = array();
 		foreach($path_array as $key => $value){
-			$value2 = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
-			$response_temp[$value2][] = $value;
+			if(isset($value['cgram'])){
+				$value2 = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
+				$response_temp[$value2][] = $value;
+			}
 		}
 		
 		if(!isset($pattern)){
