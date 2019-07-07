@@ -40,6 +40,14 @@
 		write_session('links_'.$type_bot, $new_table);
 	}
 	
+	/* Retake last human question if current human question is a simple yes or no */
+	if(isset($_POST['question']) && !empty($_POST['question']) && use_session('last_human_question_'.$type_bot)){
+		if((strpos($_POST['question'], 'oui') !== false || strpos($_POST['question'], 'non') !== false)){
+			$_POST['question'] = use_session('last_human_question_'.$type_bot);
+		}
+	}
+	write_session('last_human_question_'.$type_bot, $_POST['question']);
+	
 	/* If last response from the bot is a question and not defined set it to 0 */
 	if(!use_session('last_question_'.$type_bot)){ 
 		write_session('last_question_'.$type_bot, 0); 
@@ -242,7 +250,7 @@
 				/* If no result it means its not a word form dictionnary and stored inside an OTHER array */
 				$build_memory['OTHER'][] = array('ortho' => $value);
 			}
-		}		
+		}
 		/* Looping through all the question words again */
 		foreach($question_array as $key => $value) {
 			/* If the word of the question is found in the OTHER array, store it inside the human question data array */
@@ -265,8 +273,6 @@
 			}
 			
 			$types = array();
-			/* Defining a word value for the new human question array data */
-			$path_array[$key]['ortho'] = $value;
 			if(isset($data[md5($value)])){
 				foreach($data[md5($value)] as $row) {
 					$trigger = 1;

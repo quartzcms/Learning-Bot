@@ -229,7 +229,7 @@
 													}
 												}).done(function() {
 													o++;
-													if(o == 5){
+													if(o == 2){
 														$("#question").css('display', 'block');
 														$("#submit").css('display', 'inline-block');
 														$('#loading').css('display', 'none');
@@ -237,11 +237,11 @@
 														$('#question').focus();
 														$('#question').val('');
 													}
-													if(o < 5){
+													if(o < 2){
 														load($this, o);
 													}	
 												});
-											}, 3000);
+											}, 50);
 										}
 										
 										$('#ask').on('submit', function(event) {
