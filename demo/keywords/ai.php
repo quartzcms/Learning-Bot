@@ -430,7 +430,8 @@
 		$array_= use_session('links_'.$type_bot);
 		foreach($accepted as $key => $value) {
 			foreach($path_array as $word_key => $word_value){
-				if(isset($array_[$value]) && !in_array($word_value['ortho'], $array_[$value])){
+				$cgram = str_replace(':', '_', mb_strtolower($word_value['cgram'], 'UTF-8'));
+				if(isset($array_[$value]) && $value == $cgram && !in_array($word_value['ortho'], $array_[$value])){
 					$array_[$value][] = $word_value['ortho'];
 				}
 			}
