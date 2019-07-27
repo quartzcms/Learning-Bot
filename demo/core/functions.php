@@ -457,36 +457,42 @@
 				$pro_per2 = $path_array2[$key]['ortho'];
 				$pro3 = $path_array2[$key]['ortho'];
 				if ($pro3 == 'j' || $pro3 == 'je'){
-					$pro_per2 = str_replace('je', 'tu', $pro_per2);
-					$pro_per2 = str_replace('j', 'tu', $pro_per2);
+					$pro_per2 = 'tu';
 				} elseif ($pro3 == 'tu'){
-					$pro_per2 = str_replace('tu', 'je', $pro_per2);
+					$pro_per2 = 'je';
 				} elseif ($pro3 == 'nous'){
-					$pro_per2 = str_replace('nous', 'vous', $pro_per2);
+					$pro_per2 = 'vous';
 				} elseif ($pro3 == 'vous'){
-					$pro_per2 = str_replace('vous', 'nous', $pro_per2);
+					$pro_per2 = 'nous';
 				} elseif ($pro3 == 'moi'){
-					$pro_per2 = str_replace('moi', 'toi', $pro_per2);
+					$pro_per2 = 'toi';
 				} elseif ($pro3 == 'toi' || $pro3 == 'soi'){
-					$pro_per2 = str_replace('toi', 'moi', $pro_per2);
-					$pro_per2 = str_replace('soi', 'moi', $pro_per2);
+					$pro_per2 = 'moi';
 				} elseif ($pro3 == 'toi-même' || $pro3 == 'soi-même'){
-					$pro_per2 = str_replace('toi-même', 'moi-même', $pro_per2);
-					$pro_per2 = str_replace('soi-même', 'moi-même', $pro_per2);
+					$pro_per2 = 'moi-même';
 				} elseif ($pro3 == 'moi-même'){
-					$pro_per2 = str_replace('moi-même', 'toi-même', $pro_per2);
+					$pro_per2 = 'toi-même';
 				} elseif ($pro3 == 'nous-même'){
-					$pro_per2 = str_replace('nous-même', 'vous-même', $pro_per2);
+					$pro_per2 = 'vous-même';
 				} elseif ($pro3 == 'vous-même'){
-					$pro_per2 = str_replace('vous-même', 'nous-même', $pro_per2);
+					$pro_per2 = 'nous-même';
 				} elseif ($pro3 == 'me'){
-					$pro_per2 = str_replace('me', 'te', $pro_per2);
+					$pro_per2 = 'te';
 				} elseif ($pro3 == 'te'){
-					$pro_per2 = str_replace('te', 'me', $pro_per2);
-				} elseif ($pro3 == 'm'){
-					$pro_per2 = str_replace('m', 't', $pro_per2);
+					$pro_per2 = 'me';
+				}
+				$path_array2[$key]['new'] = $pro_per2;
+			}
+		}
+		
+		foreach($path_array2 as $key => $value){
+			if(!isset($path_array2[$key]['new']) && isset($path_array2[$key]['cgram']) && $path_array2[$key]['cgram'] == 'PRO:per:con'){
+				$pro_per2 = $path_array2[$key]['ortho'];
+				$pro3 = $path_array2[$key]['ortho'];
+				if ($pro3 == 'm'){
+					$pro_per2 = 't';
 				} elseif ($pro3 == 't'){
-					$pro_per2 = str_replace('t', 'm', $pro_per2);
+					$pro_per2 = 'm';
 				}
 				$path_array2[$key]['new'] = $pro_per2;
 			}
