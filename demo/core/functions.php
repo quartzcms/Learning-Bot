@@ -479,6 +479,14 @@
 					$pro_per2 = str_replace('nous-même', 'vous-même', $pro_per2);
 				} elseif ($pro3 == 'vous-même'){
 					$pro_per2 = str_replace('vous-même', 'nous-même', $pro_per2);
+				} elseif ($pro3 == 'me'){
+					$pro_per2 = str_replace('me', 'te', $pro_per2);
+				} elseif ($pro3 == 'te'){
+					$pro_per2 = str_replace('te', 'me', $pro_per2);
+				} elseif ($pro3 == 'm'){
+					$pro_per2 = str_replace('m', 't', $pro_per2);
+				} elseif ($pro3 == 't'){
+					$pro_per2 = str_replace('t', 'm', $pro_per2);
 				}
 				$path_array2[$key]['new'] = $pro_per2;
 			}

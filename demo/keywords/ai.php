@@ -304,6 +304,17 @@
 						$trigger = 0;
 					}
 					
+					/* If last word is a one character association letter and current word is a verb */
+					if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) && (
+							in_array('PRE', $words_kept_array[$question_array[$key - 1]])
+						) && strlen($question_array[$key - 1]) == 1 && ($row['cgram'] == 'VER')
+					){
+						/* Exclude this match from database for the current word */
+						$trigger = 0;
+					}
+					
 					/* If last word is a verb or an infinitive verb or a past participle and current word is an auxiliary */
 					if(
 						isset($question_array[$key - 1]) &&
@@ -417,7 +428,7 @@
 		}
 		/* For each posessive adjective word replace by opposite for example : your -> my */
 		foreach($path_array as $key => $value){
-			if(isset($value['cgram']) && isset($value['ortho']) && $value['cgram'] == 'ADJ:pos'){
+			if(isset($value['cgram']) && isset($value['ortho']) && ($value['cgram'] == 'ADJ:pos' || $value['cgram'] == 'PRO:pos')){
 				$reverse = mysqli_query($connexion, "SELECT * FROM adj_pos WHERE keyword = '".addslashes($value['ortho'])."' COLLATE utf8_bin LIMIT 1") or die (mysqli_error($connexion));
 				if(mysqli_num_rows($reverse) > 0){
 					$row = mysqli_fetch_assoc($reverse);
@@ -499,7 +510,7 @@
 		$core = new core($variables);
 		
 		/* If the sentence contains a posessive adjective or if the last bot response is a question or if the * character is found the chatbot will learn */
-		if(isset($build_memory['ADJ:pos']) || $trigger_verb == 'learn' || $freecard == 1){
+		if(isset($build_memory['ADJ:pos']) || isset($build_memory['PRO:pos']) || $trigger_verb == 'learn' || $freecard == 1){
 			$order_pro_ver = array();
 			/* Create the sentence pattern with each word types */
 			$core->createPatterns();
