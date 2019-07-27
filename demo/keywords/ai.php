@@ -20,6 +20,14 @@
 		exit;
 	}
 	
+	/* Get the channel. If not found use the default one. */
+	if(!use_session('channels')){ 
+		write_session('channels', '255.255.255.255');
+		$ip_user = '255.255.255.255';
+	} else {
+		$ip_user = use_session('channels');
+	}
+	
 	$type_bot = $_POST['type'];
 	/* If response counter is not defined, set it to 0 */
 	if(!use_session('count_response_'.$type_bot)){ 
@@ -517,7 +525,7 @@
 			/* Create the array which will be inserted in the database */
 			$core->prepareDataInsert();
 			/* Insert data inside the database and return values of the inserted arrays */
-			$inserted_data = $core->dataInsert($memory_insert, $append_data);
+			$inserted_data = $core->dataInsert($memory_insert, $append_data, $ip_user);
 			extract($inserted_data, EXTR_OVERWRITE);
 		}
 		
@@ -582,9 +590,9 @@
 					$first_query[] = '('.implode(') AND (', $query4).')';
 				}
 				
-				$query = 'WHERE (('.implode(') OR (', $first_query).')'.$query_links.') AND (pattern LIKE \'%{%\' AND pattern LIKE \'%}%\')'.$query_used;
+				$query = 'WHERE (('.implode(') OR (', $first_query).')'.$query_links.') AND (pattern LIKE \'%{%\' AND pattern LIKE \'%}%\') AND ip = "'.$ip_user.'"'.$query_used;
 			} else {
-				$query = 'WHERE (id = 0)';
+				$query = 'WHERE (id = 0) AND ip = "'.$ip_user.'"';
 			}
 			/* Querying the database for a match */
 			$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_".$type_bot." ".$query." ORDER BY RAND() DESC LIMIT 1") or die (mysqli_error($connexion));

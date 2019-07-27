@@ -44,9 +44,9 @@
 											</div>
 										</form>
 									<?php } ?>
-									<form action="demo/language/language.php" method="post">
-										<div class="row">
-											<div class="col-md-10">
+									<div class="row">
+										<form action="demo/language/language.php" method="post">
+											<div class="col-md-6">
 												<p>
 													<select name="language" class="form-control">
 														<option value="fr">- Select Language -</option>
@@ -157,10 +157,27 @@
 												</p>
 											</div>
 											<div class="col-md-2">
-												<p><button class="btn btn-info" style="width: 100%;" name="submit" type="submit">Change language</button></p>
+												<p><button class="btn btn-info" style="width: 100%;" name="submit" type="submit">Change Language</button></p>
 											</div>
-										</div>
-									</form>
+										</form>
+										<form action="/demo/channels/channels.php" method="post">
+											<div class="col-md-2">
+												<p>
+													<select name="channels" class="form-control">
+														<option value="255.255.255.255" <?php if(use_session('channels') && (use_session('channels') =='255.255.255.255' || use_session('channels') =='')){ echo 'selected="selected"'; } ?>>- Default -</option>
+														<option value="sexy" <?php if(use_session('channels') && use_session('channels') =='sexy'){ echo 'selected="selected"'; } ?>>For Adults</option>
+														<option value="violent" <?php if(use_session('channels') && use_session('channels') =='violent'){ echo 'selected="selected"'; } ?>>Violent</option>
+														<option value="lost" <?php if(use_session('channels') && use_session('channels') =='lost'){ echo 'selected="selected"'; } ?>>Lost</option>
+													</select>
+												</p>
+											</div>
+											<div class="col-md-2">
+												<p>
+													<button class="btn btn-info" style="width: 100%;" name="submit" type="submit">Change Channel</button>
+												</p>
+											</div>
+										</form>
+									</div>
 								</div>
 							</div>
 						</div>

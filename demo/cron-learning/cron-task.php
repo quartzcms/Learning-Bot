@@ -41,11 +41,11 @@ if(use_session('already_one') == 0){
 	$query = 'WHERE ('.$query_links.')';
 	
 	//$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one ".$query." AND wikipedia != '' AND ip = '".$_SERVER['REMOTE_ADDR']."' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
-	$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one ".$query." AND wikipedia != '' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
+	$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one ".$query." AND wikipedia != '' AND ip = '255.255.255.255' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
 	$data = mysqli_fetch_assoc($memory_query);
 } else {
 	//Need more than 30 results othewise it could repeat same line
-	$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one WHERE wikipedia != '' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
+	$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one WHERE wikipedia != '' AND ip = '255.255.255.255' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
 	$data = mysqli_fetch_assoc($memory_query);
 }
 
