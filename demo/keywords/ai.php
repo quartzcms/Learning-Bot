@@ -587,7 +587,7 @@
 				$query = 'WHERE (id = 0)';
 			}
 			/* Querying the database for a match */
-			$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_".$type_bot." ".$query." ORDER BY id DESC LIMIT 1") or die (mysqli_error($connexion));
+			$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_".$type_bot." ".$query." ORDER BY RAND() DESC LIMIT 1") or die (mysqli_error($connexion));
 			$data = mysqli_fetch_assoc($memory_query);
 			
 			if(mysqli_num_rows($memory_query) > 0){
