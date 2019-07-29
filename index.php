@@ -210,6 +210,8 @@
 														$('.counter .answer').html('');
 														if(json.response != '') {
 															$(".response").prepend("<p>Julie: <span>" + json.response +"</span></p>");
+														} else {
+															$(".response").prepend("<p>Julie: <span>-</span></p>");
 														}
 														
 														if(json.analyse != '') {
