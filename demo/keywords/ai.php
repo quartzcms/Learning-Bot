@@ -85,6 +85,7 @@
 	if(use_session('last_question_'.$type_bot) == 1){
 		$trigger_verb = 'learn';
 		write_session('last_question_'.$type_bot, 0);
+		write_session('last_question_sentence_'.$type_bot, '');
 	}
 	
 	/* Each 10 response clean the the memory used IDs and the stored responses */
@@ -548,8 +549,8 @@
 		/* If the chatbot is not learning, loop through all human question data array values and add appropriate conditions */
 		$accepted = array('nom', 'other', 'adj', 'ver');		
 		if($memory_insert != 1){
+			$build_conditions4 = array();
 			foreach($path_array as $key => $value){
-				$build_conditions4 = array();
 				$new = array();
 				$index = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
 				if(in_array($index, $accepted)){
@@ -558,7 +559,7 @@
 			}
 			foreach($build_conditions4 as $key => $value){
 				if(!empty($value)){
-					$query4[] = '('.implode(' COLLATE utf8_bin OR ', $value).' COLLATE utf8_bin)';
+					$query4[] = '('.implode(' COLLATE utf8_bin AND ', $value).' COLLATE utf8_bin)';
 				}
 			}
 			
@@ -575,7 +576,7 @@
 					$array_ = use_session('links_'.$type_bot);
 					if(isset($array_[$value1]) && !empty($array_[$value1])){
 						foreach($array_[$value1] as $key => $value){
-							$links[] = $value1.' LIKE \'%'.addslashes($array_[$value1][$key]).'%\'';
+							$links[] = 'keywords LIKE \'%"'.addslashes($array_[$value1][$key]).'"%\'';
 						}
 					}
 				}
@@ -595,7 +596,7 @@
 				$query = 'WHERE (id = 0) AND ip = "'.$ip_user.'"';
 			}
 			/* Querying the database for a match */
-			$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_".$type_bot." ".$query." ORDER BY RAND() DESC LIMIT 1") or die (mysqli_error($connexion));
+			$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_".$type_bot." ".$query." ORDER BY id DESC LIMIT 1") or die (mysqli_error($connexion));
 			$data = mysqli_fetch_assoc($memory_query);
 			
 			if(mysqli_num_rows($memory_query) > 0){
@@ -726,6 +727,8 @@
 				$response_temp[$value2][] = $value;
 			}
 		}
+		
+		$result_array = ['temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array('data' => $data, 'words_found' => $build_memory, 'links' => use_session('links_'.$type_bot), 'counter' => use_session('count_response_'.$type_bot), 'used_id' => implode(', ', use_session('used_id_'.$type_bot)), 'action' => $action[$rand], 'question_array' => $question_array, 'words_kept' => $words_kept, 'already_said' => $already_said, 'new_sentence' => $new_sentence)];
 		
 		if(!isset($pattern)){
 			/* The syntax pattern in case no pattern is found. They are used to reorder sentences in new sentences */
@@ -1195,6 +1198,11 @@
 						)		
 					);
 				*/
+				
+				$result_array['analyse']['pattern_chosen'] = implode(', ', $sentence_order);
+				$result_array['analyse']['reorder_array'] = $reorder_array;
+				$result_array['analyse']['detect'] = 'Syntax Patterns';
+				
 				$data = $response;
 				$response = (!empty($build_container)) ? implode(' ', $build_container) : '';
 				$response = str_replace('\' ', '\'', $response);
@@ -1252,6 +1260,8 @@
 					
 					$response = ucfirst($response);
 					
+					$result_array['analyse']['will_learn'] = use_session('last_question_sentence_'.$type_bot);
+					
 					/* If this response is a question add it to the last question sentence session */
 					if(strpos($response, '?') !== false){
 						write_session('last_question_'.$type_bot, 1);
@@ -1276,7 +1286,8 @@
 						echo $response;
 					} else {
 						/* Otherwise echo a JSON object */
-						echo json_encode(['response' => $response, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
+						$result_array['response'] = $response;
+						$result_array['analyse']['detect'] = 'Syntax Patterns';
 					}
 				} else {
 					// If a pattern is matched but no response : output nothing
@@ -1284,7 +1295,9 @@
 					if($_POST['nojson'] == 1){
 						
 					} else {
-						echo json_encode(['response' => '', 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => implode(',', $sentence_order), $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern empty_response', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
+						$result_array['response'] = '';
+						$result_array['analyse']['pattern_chosen'] = 'Pattern is empty';
+						$result_array['analyse']['detect'] = 'Syntax Patterns';
 					}
 				}
 			} else {
@@ -1293,7 +1306,9 @@
 				if($_POST['nojson'] == 1){
 						
 				} else {
-					echo json_encode(['response' => '', 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $reorder_array, $action[$rand], $question_array, $words_kept, 'not_pattern no_sentence_order', 'already_said' => $already_said, 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'new_sentence' => $new_sentence)]);
+					$result_array['response'] = '';
+					$result_array['analyse']['pattern_chosen'] = 'No pattern matched';
+					$result_array['analyse']['detect'] = 'Syntax Patterns';
 				}
 			}
 		} else {
@@ -1341,6 +1356,8 @@
 				
 				$pattern = ucfirst($pattern);
 				
+				$result_array['analyse']['will_learn'] = use_session('last_question_sentence_'.$type_bot);
+				
 				/* If this response is a question */
 				if(strpos($pattern, '?') !== false){
 					write_session('last_question_'.$type_bot, 1);
@@ -1360,7 +1377,9 @@
 					echo $pattern;	
 				} else {
 					/* Echo full JSON object */
-					echo json_encode(['response' => $pattern, 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => $pattern_chosen, $action[$rand], $question_array, $words_kept, 'pattern', 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
+					$result_array['response'] = $pattern;
+					$result_array['analyse']['pattern_chosen'] = str_replace(',', ', ', $pattern_chosen);
+					$result_array['analyse']['detect'] = 'Database pattern';
 				}				
 			} else {
 				// If pattern is empty : output nothing
@@ -1368,11 +1387,15 @@
 				if($_POST['nojson'] == 1){
 					
 				} else {
-					echo json_encode(['response' => '', 'temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array($data, 'words_found' => $build_memory, 'pattern_chosen' => 'No pattern found', $action[$rand], $question_array, $words_kept, 'pattern empty_pattern', 'will_learn' => use_session('last_question_sentence_'.$type_bot), 'already_said' => $already_said, 'new_sentence' => $new_sentence)]);
+					$result_array['response'] = '';
+					$result_array['analyse']['pattern_chosen'] = 'Pattern is empty';
+					$result_array['analyse']['detect'] = 'Database pattern';
 				}
 			}
 		}
 	}
+	
+	echo json_encode($result_array);
 	/* Each 10 response from bot the short term memory is flushed and the counter is resetted */
 	if(use_session('count_response_'.$type_bot) > 10){
 		$accepted = array('other', 'nom', 'ver', 'adj');
