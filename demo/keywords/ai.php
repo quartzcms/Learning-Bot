@@ -559,7 +559,7 @@
 			}
 			foreach($build_conditions4 as $key => $value){
 				if(!empty($value)){
-					$query4[] = '('.implode(' COLLATE utf8_bin AND ', $value).' COLLATE utf8_bin)';
+					$query4[] = '('.implode(' COLLATE utf8_bin OR ', $value).' COLLATE utf8_bin)';
 				}
 			}
 			
