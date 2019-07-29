@@ -203,14 +203,29 @@
 														$('.words-found .answer').html('');
 														$('.if-already-said .answer').html('');
 														$('.learning-next-sentence .answer').html('');
-													
+														$('.type .answer').html('');
+														$('.action .answer').html('');
+														$('.used_id .answer').html('');
+														$('.keywords .answer').html('');
+														$('.counter .answer').html('');
 														if(json.response != '') {
 															$(".response").prepend("<p>Julie: <span>" + json.response +"</span></p>");
 														}
 														
 														if(json.analyse != '') {
 															console.log(json.analyse);
-															
+															$('.type .answer').html(json.analyse.detect);
+															$.each(json.analyse.links, function(index, value){
+																var list = $('<ul style="padding: 0% 2% 2% 0%; margin: 0px; list-style-type: none; float:left; width:23%;"><li><p><u>'+ index +':</u></p><ul></ul></li></ul>');
+																$.each(value, function(index2, value2){
+																	list.append('<li>' + value2 + '</li>');
+																});
+																
+																$('.keywords .answer').append(list);
+															});
+															$('.used_id .answer').html(json.analyse.used_id);
+															$('.counter .answer').html(json.analyse.counter);
+															$('.action .answer').html(json.analyse.action);
 															$('.pattern-chosen .answer').html(json.analyse.pattern_chosen);
 															$.each(json.analyse.words_found, function(index, value){
 																$.each(value, function(index2, value2){
@@ -287,22 +302,68 @@
 									</div>
 									<div class="col-md-4">
 										<h3 style="margin-top: 0px;"><span class="glyphicon glyphicon-tags"></span>Extra</h3>
-										<div class="well box-extra">
-											<div class="text-success pattern-chosen" style="clear:both;">
-												<h4>Pattern chosen</h4>
-												<p class="answer"></p>
-											</div>
-											<div class="text-warning words-found" style="clear:both;">
-												<h4>Words found</h4>
-												<ul class="answer" style="list-style-type: none; padding: 0px; margin: 0px; "></ul>
-											</div>
-											<div class="text-info if-already-said" style="clear:both;">
-												<h4>If already said</h4>
-												<p class="answer"></p>
-											</div>
-											<div class="text-danger learning-next-sentence" style="clear:both;">
-												<h4>Will learn reply</h4>
-												<p class="answer"></p>
+										<div class="well">
+											<div class="box-extra" style="overflow-y: scroll; height: 350px;">
+												<div class="row">
+													<div class="col-md-6">
+														<div class="text-success pattern-chosen" style="clear:both;">
+															<h4>Pattern chosen</h4>
+															<p class="answer"></p>
+														</div>
+													</div>
+													<div class="col-md-6">
+														<div class="text-info type" style="clear:both;">
+															<h4>Type</h4>
+															<p class="answer"></p>
+														</div>
+													</div>
+												</div>
+												<hr style="border-color: #cccccc; margin: 5px 0px; padding:0px;" />
+												<div class="row">
+													<div class="col-md-12">					
+														<div class="text-warning words-found" style="clear:both;">
+															<h4>Words found</h4>
+															<ul class="answer" style="list-style-type: none; padding: 0px; margin: 0px;"></ul>
+														</div>
+													</div>
+												</div>
+												<hr style="border-color: #cccccc; margin: 5px 0px; padding:0px;" />
+												<p><small>Keywords and IDs reset at 11</small></p>
+												<div class="row">
+													<div class="col-md-6">
+														<div class="text-info counter" style="clear:both;">
+															<h4>Counter</h4>
+															<p>Current count: <span class="answer"></span></p>
+														</div>
+														<div class="text-info action" style="clear:both;">
+															<h4>Action</h4>
+															<p class="answer"></p>
+														</div>
+														<div class="text-info learning-next-sentence" style="clear:both;">
+															<h4>Will learn reply</h4>
+															<p class="answer"></p>
+														</div>
+													</div>
+													<div class="col-md-6">
+														<div class="text-danger if-already-said" style="clear:both;">
+															<h4>If already said</h4>
+															<p class="answer"></p>
+														</div>
+														<div class="text-danger used_id" style="clear:both;">
+															<h4>Used ID</h4>
+															<p class="answer"></p>
+														</div>
+													</div>
+												</div>
+												<hr style="border-color: #cccccc; margin: 5px 0px; padding:0px;" />
+												<div class="row">
+													<div class="col-md-12">		
+														<div class="text-success keywords" style="clear:both;">
+															<h4>Association keywords</h4>
+															<div class="answer"></div>
+														</div>
+													</div>
+												</div>
 											</div>
 										</div>
 									</div>
