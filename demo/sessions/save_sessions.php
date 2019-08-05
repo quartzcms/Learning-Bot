@@ -1,6 +1,7 @@
 <?php
 
 	function write_session($session_name, $session_content) {
+		$_SERVER['REMOTE_ADDR'] = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '255.255.255.255';
 		$file_path = __DIR__.'/data/'.$_SERVER['REMOTE_ADDR'].'-'.date('Ymd').'.txt';
 		
 		if(!file_exists($file_path)){

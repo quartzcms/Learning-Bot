@@ -2,89 +2,60 @@
 ini_set('display_errors', 1);
 include(dirname(__FILE__).'/../sessions/save_sessions.php');
 include(dirname(__FILE__).'/../sessions/use_sessions.php');
-// Execute this cron task every minute to send to the AI an human like wiipedia sentence
-// * * * * * cd /path/to/project/root && PHP cron-task.php 1>> /dev/null 2>&1
+// Execute this cron task every minute to send to the AI an human like wikipedia sentence
+// * * * * * cd /path/to/project/root/demo/cron-learning && php cron-task.php
 include(dirname(__FILE__).'/../../config.php');
 $connexion = mysqli_connect($al_host, $al_user, $al_password, $al_db_name);
 mysqli_set_charset($connexion, 'utf8');
 $link_one = use_session('links_one');
 if(!use_session('already_one')) { write_session('already_one', 1); }
-$accepted = array('other', 'nom');
-if(use_session('links_one')) {
-	$detect_empty = 0;
-	foreach($accepted as $key1 => $value1) {
-		if(isset($link_one[$value1]) && empty($link_one[$value1])){
-			$detect_empty = 1;
+
+$accepted = array('nom');
+$links = array();
+foreach($accepted as $key => $value) {
+	if(isset($link_one[$value]) && !empty($link_one[$value])){
+		foreach($link_one[$value] as $index => $value2){
+			$links[] = 'human LIKE \'%'.addslashes($link_one[$value][$index]).'%\'';
 		}
-	}
-	if($detect_empty == 0) {
-		write_session('already_one', 0);
-	} else {
-		write_session('already_one', 1);
 	}
 }
 
-if(use_session('already_one') == 0){
-	$links = array();
-	foreach($accepted as $key1 => $value1) {
-		if(isset($link_one[$value1]) && !empty($link_one[$value1])){
-			foreach($link_one[$value1] as $key => $value){
-				$links[] = 'human LIKE \'%'.addslashes($link_one[$value1][$key]).'%\'';
-			}
-		}
-	}
-	
-	if(!empty($links)){
-		$query_links .= implode(' COLLATE utf8_bin AND ', $links);
-	}
-		
-	$query = 'WHERE ('.$query_links.')';
-	
-	//$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one ".$query." AND wikipedia != '' AND ip = '".$_SERVER['REMOTE_ADDR']."' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
-	$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one ".$query." AND wikipedia != '' AND ip = '255.255.255.255' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
-	$data = mysqli_fetch_assoc($memory_query);
-} else {
-	//Need more than 30 results othewise it could repeat same line
-	$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one WHERE wikipedia != '' AND ip = '255.255.255.255' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
-	$data = mysqli_fetch_assoc($memory_query);
+$query = '';
+if(!empty($links)){
+	$query = '('.implode(' COLLATE utf8_bin AND ', $links).') AND';
 }
 
+$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_one WHERE ".$query." wikipedia != '' AND ip = '255.255.255.255' ORDER BY RAND() LIMIT 1") or die (mysqli_error($connexion));
+$data = mysqli_fetch_assoc($memory_query);
 $human_sentence = '';
 
 if(!empty($data)){
-	$rand = explode('.', $data['wikipedia']);
-	
-	foreach($rand as $key => $value){
-		if(!isset($rand[$key + 1])){
-			unset($rand[$key]);
-		}
-	}
-	
+	$rand = explode('.', trim($data['wikipedia'], '.'));
 	$index = rand(0, (count($rand) - 1));
+	
 	if(!empty($rand[$index])){
 		$human_sentence = $rand[$index];
-		$human_sentence = preg_replace('#\([^\)]*\)#', '', $human_sentence);
+		$human_sentence = str_replace(')', '', $human_sentence);
+		$human_sentence = str_replace('(', '', $human_sentence);
 		$human_sentence = str_replace('«', '', $human_sentence);
 		$human_sentence = str_replace('»', '', $human_sentence);
 		$human_sentence = str_replace('[', '', $human_sentence);
 		$human_sentence = str_replace(']', '', $human_sentence);
-		$human_sentence = preg_replace('[\’]', '\'', $human_sentence);
+		$human_sentence = str_replace('’', '\'', $human_sentence);
 	}
 }
+
 if(!empty($human_sentence)){
 	$post_values = [
 		'type' => 'one',
 		'question' => $human_sentence,
-	];
-	
-	$strCookie = 'PHPSESSID=session; path=/';
-	session_write_close();
-	
+		'nojson' => 0,
+		'bot' => 1,
+	];	
 	/* Website AI file URL: Replace with yours */
 	$ch = curl_init($url.'demo/keywords/ai.php');
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 	curl_setopt($ch, CURLOPT_POSTFIELDS, $post_values);
-	curl_setopt($ch, CURLOPT_COOKIE, $strCookie); 
 	
 	$response = curl_exec($ch);
 	curl_close($ch);
