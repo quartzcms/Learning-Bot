@@ -4,6 +4,10 @@
 	include('../sessions/save_sessions.php');
 	include('../sessions/use_sessions.php');
 	
+	/* Defining a new MySQL connection for the AI */
+	$connexion = mysqli_connect($al_host, $al_user, $al_password, $al_db_name);
+	mysqli_set_charset($connexion, 'utf8');
+	
 	/* If language is defined set new language */
 	if(isset($_POST['language'])){
 		write_session('language', $_POST['language']);
@@ -169,7 +173,6 @@
 				$appendToResponse =  $append_data;
 			}
 		} else {
-			/* If no result is found from translate skip this part and register a variable for later */
 			$wiki_later = 1;
 		}
 	}	
@@ -188,9 +191,6 @@
 	include('../core/functions.php');
 	/* Including the AI learning functions */
 	include('../core/core.php');
-	/* Defining a new MySQL connection for the AI */
-	$connexion = mysqli_connect($al_host, $al_user, $al_password, $al_db_name);
-	mysqli_set_charset($connexion, 'utf8');
 	/* Defining the necessary variable for the storing of database words */
 	$build_memory = array();
 	$response = array();
@@ -445,18 +445,6 @@
 				}
 			} 
 		}
-		/* Store the new human questions words in the short term memory session */
-		$accepted = array('other', 'nom', 'ver', 'adj');
-		$array_= use_session('links_'.$type_bot);
-		foreach($accepted as $key => $value) {
-			foreach($path_array as $word_key => $word_value){
-				$cgram = str_replace(':', '_', mb_strtolower($word_value['cgram'], 'UTF-8'));
-				if(isset($array_[$value]) && $value == $cgram && !in_array($word_value['ortho'], $array_[$value])){
-					$array_[$value][] = $word_value['ortho'];
-				}
-			}
-		}
-		write_session('links_'.$type_bot, $array_);
 		
 		/* Deciding randomly if the response will be a suggestion or a repetition */
 		$action = array('sug', 'rep');
@@ -466,7 +454,6 @@
 		$verbs = [];
 		$memory_insert = 0;
 		
-		/* From earlier, if no translation for the human question */
 		if($wiki_later == 1){
 			$name = '';
 			/* Detect nouns in the human question data array */
@@ -491,6 +478,33 @@
 			}
 		}
 		
+		/****************** FOR KEYWORDS ARRAY ****************/
+		$links = array();
+		if(use_session('links_'.$type_bot)){
+			$links = use_session('links_'.$type_bot);
+		}
+		
+		$detect = 0;
+		if(isset($path_array) && !empty($path_array)){
+			foreach($path_array as $key => $value){
+				foreach($links as $key2 => $value2){
+					if(in_array($path_array[$key]['ortho'], $value2)){
+						$detect = 1;
+					}
+				}
+			}
+		}
+		if($detect == 0){
+			$accepted = array('other', 'nom', 'ver', 'adj');
+			$new_table = array();
+			foreach($accepted as $key => $value) {
+				 $new_table[$value] = array();
+			}
+			write_session('links_'.$type_bot, $new_table);
+		}
+		
+		/******************************************************/
+		
 		/* If no special pronoun are found the chatbot will not output Wikipedia description to the human */
 		$detect = 0;
 		foreach($path_array as $key => $value){
@@ -502,6 +516,19 @@
 		if($detect == 0){
 			$appendToResponse = '';
 		}
+		
+		/* Store the new human questions words in the short term memory session */
+		$accepted = array('other', 'nom', 'ver', 'adj');
+		$array_= use_session('links_'.$type_bot);
+		foreach($accepted as $key => $value) {
+			foreach($path_array as $word_key => $word_value){
+				$cgram = str_replace(':', '_', mb_strtolower($word_value['cgram'], 'UTF-8'));
+				if(isset($array_[$value]) && $value == $cgram && !in_array($word_value['ortho'], $array_[$value])){
+					$array_[$value][] = $word_value['ortho'];
+				}
+			}
+		}
+		write_session('links_'.$type_bot, $array_);
 		
 		/* VERBS function */
 		$verbs_and_pronouns = renderVerbs($reason, $path_array, $connexion);
@@ -517,9 +544,15 @@
 		);
 		/* Defining a new core class for the learning functions */
 		$core = new core($variables);
-		
+		$links = use_session('links_'.$type_bot);
+		$full = 0;
+		foreach($links as $key => $value){
+			if(!empty($links[$key])){
+				$full = 1;
+			}
+		}
 		/* If the sentence contains a posessive adjective or if the last bot response is a question or if the * character is found the chatbot will learn */
-		if(isset($build_memory['ADJ:pos']) || isset($build_memory['PRO:pos']) || $trigger_verb == 'learn' || $freecard == 1){
+		if((isset($build_memory['ADJ:pos']) || isset($build_memory['PRO:pos']) || $trigger_verb == 'learn' || $freecard == 1) && $full == 1){
 			$order_pro_ver = array();
 			/* Create the sentence pattern with each word types */
 			$core->createPatterns();
@@ -1398,12 +1431,6 @@
 	echo json_encode($result_array);
 	/* Each 10 response from bot the short term memory is flushed and the counter is resetted */
 	if(use_session('count_response_'.$type_bot) > 10){
-		$accepted = array('other', 'nom', 'ver', 'adj');
-		$new_table = array();
-		foreach($accepted as $key => $value) {
-			 $new_table[$value] = array();
-		}
-		write_session('links_'.$type_bot, $new_table);
 		write_session('count_response_'.$type_bot, 0);
 	}
 ?>
