@@ -31,7 +31,8 @@
 									isset($new_question[$i - 1]['cgram']) &&
 									($new_question[$i - 1]['cgram'] == 'ART:def' || 
 									$new_question[$i - 1]['cgram'] == 'ART:ind' || 
-									$new_question[$i - 1]['cgram'] == 'ADJ:pos') &&
+									$new_question[$i - 1]['cgram'] == 'ADJ:pos' || 
+									$new_question[$i - 1]['cgram'] == 'PRO:pos') &&
 									($new_question[$i - 1]['ortho'] != 'aux' && $new_question[$i - 1]['ortho'] != 'au')
 								) {
 									if(isset($new_question[$i - 2]['cgram']) &&	
@@ -60,7 +61,8 @@
 									if(isset($new_question[$i]['cgram']) && 
 									($new_question[$i]['cgram'] == 'ART:def' || 
 									$new_question[$i]['cgram'] == 'ART:ind' || 
-									$new_question[$i]['cgram'] == 'ADJ:pos')){
+									$new_question[$i]['cgram'] == 'ADJ:pos' || 
+									$new_question[$i]['cgram'] == 'PRO:pos')){
 										if(
 											(
 												isset($new_question[$i - 1]['ortho']) &&
@@ -95,7 +97,8 @@
 											for($j = ((($i - 1) > -1) ? ($i - 1) : 0); $j > -1; $j--){
 												if(isset($new_question[$j]['cgram']) && 
 												($new_question[$j]['cgram'] == 'ART:def' ||
-												 $new_question[$j]['cgram'] == 'ADJ:pos')){
+												 $new_question[$j]['cgram'] == 'ADJ:pos' ||
+												 $new_question[$j]['cgram'] == 'PRO:pos')){
 													$collect_pronouns[] = $new_question[$j];
 												}
 											}
