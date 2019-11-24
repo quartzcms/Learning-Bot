@@ -207,6 +207,12 @@
 								$pronoun_verb == 'moi-même' || 
 								$pronoun_verb == 'nous-même' || 
 								$pronoun_verb == 'vous-même' || 
+								$pronoun_verb == 'nous-mêmes' || 
+								$pronoun_verb == 'vous-mêmes' ||
+								$pronoun_verb == 'lui-même' || 
+								$pronoun_verb == 'elle-même' ||
+								$pronoun_verb == 'eux-mêmes' || 
+								$pronoun_verb == 'elles-mêmes' || 
 								$pronoun_verb == 'celle' || 
 								$pronoun_verb == 'ceux' || 
 								$pronoun_verb == 'celles' || 
@@ -250,6 +256,12 @@
 									$pronoun_verb == 'moi-même' || 
 									$pronoun_verb == 'nous-même' || 
 									$pronoun_verb == 'vous-même' ||
+									$pronoun_verb == 'nous-mêmes' || 
+									$pronoun_verb == 'vous-mêmes' ||
+									$pronoun_verb == 'lui-même' || 
+									$pronoun_verb == 'elle-même' ||
+									$pronoun_verb == 'eux-mêmes' || 
+									$pronoun_verb == 'elles-mêmes' ||
 									$pronoun_verb == 'celle' || 
 									$pronoun_verb == 'ceux' || 
 									$pronoun_verb == 'celles' || 
@@ -306,23 +318,26 @@
 				
 				$pro_genre = 'm';
 				$rightTense = array('ind', 'pre');
-				if ($pro == 'il' || $pro == 'elle' || 
+				if ($pro == 'il' || $pro == 'elle' ||
+					$pro == 'lui-même' || $pro == 'elle-même' || 
 					$pro == 'celle' || $pro == 'cela' || 
-					$pro == 'ceci' || $pro == 'celui'){
+					$pro == 'ceci' || $pro == 'celui' ||
+					$pro == 'soi' || $pro == 'soi-même'){
 					$person = '3s';
 					$pro_nombre = 's';
 					$pro_per = $pro;
 					
-					if($pro == 'elle' || $pro == 'celle'){
+					if($pro == 'elle' || $pro == 'celle' || $pro == 'elle-même'){
 						$pro_genre = 'f';
 					}
 				} elseif ($pro == 'ils' || $pro == 'elles' || 
-						  $pro == 'celles' || $pro == 'ceux'){
+						  $pro == 'celles' || $pro == 'ceux' ||
+						  $pro == 'eux-mêmes' || $pro == 'elles-mêmes'){
 					$person = '3p';
 					$pro_nombre = 'p';
 					$pro_per = $pro;
 					
-					if($pro == 'elles' || $pro == 'celles'){
+					if($pro == 'elles' || $pro == 'celles' || $pro == 'elles-mêmes'){
 						$pro_genre = 'f';
 					}
 				} elseif ($pro == 'j' || $pro == 'je'){
@@ -345,11 +360,11 @@
 					$person = '2s';
 					$pro_nombre = 's';
 					$pro_per = 'toi';
-				} elseif ($pro == 'toi' || $pro == 'soi'){
+				} elseif ($pro == 'toi'){
 					$person = '1s';
 					$pro_nombre = 's';
 					$pro_per = 'moi';
-				} elseif ($pro == 'toi-même' || $pro == 'soi-même'){
+				} elseif ($pro == 'toi-même'){
 					$person = '1s';
 					$pro_nombre = 's';
 					$pro_per = 'moi-même';
@@ -365,6 +380,14 @@
 					$person = '1p';
 					$pro_nombre = 'p';
 					$pro_per = 'nous-même';
+				} elseif ($pro == 'nous-mêmes'){
+					$person = '2p';
+					$pro_nombre = 'p';
+					$pro_per = 'vous-mêmes';
+				} elseif ($pro == 'vous-mêmes'){
+					$person = '1p';
+					$pro_nombre = 'p';
+					$pro_per = 'nous-mêmes';
 				} else {
 					$person = '3';
 					$pro_nombre = 's';
@@ -479,6 +502,10 @@
 					$pro_per2 = 'vous-même';
 				} elseif ($pro3 == 'vous-même'){
 					$pro_per2 = 'nous-même';
+				} elseif ($pro3 == 'nous-mêmes'){
+					$pro_per2 = 'vous-mêmes';
+				} elseif ($pro3 == 'vous-mêmes'){
+					$pro_per2 = 'nous-mêmes';
 				} elseif ($pro3 == 'me'){
 					$pro_per2 = 'te';
 				} elseif ($pro3 == 'te'){
