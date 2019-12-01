@@ -451,7 +451,7 @@
 									$pro_per = 'j';
 								}
 								
-								if(strlen($path_array[$key - 1]['ortho']) == 1){
+								if(isset($path_array[$key - 1]['ortho']) && strlen($path_array[$key - 1]['ortho']) == 1){
 									$pro_per = 'je';
 								}
 							}
