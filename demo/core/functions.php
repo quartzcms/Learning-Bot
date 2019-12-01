@@ -18,6 +18,43 @@
 				$new_question = array_values($new_question);
 				foreach($new_question as $index => $word){
 					if($word['ortho'] == $value['ortho']){
+						$nom_detect = 0;
+						$addition = 0;
+						$pre_verb_anticipated = '';
+						$pre_verb_anticipated_genre = '';
+						$pre_verb_anticipated_nombre = '';
+						$collect_pronouns = array();
+						$collect_nouns = array();
+						for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){
+							if(isset($new_question[$i]['cgram']) && 
+							($new_question[$i]['cgram'] == 'VER' || 
+							$new_question[$i]['cgram'] == 'VER:past' || 
+							$new_question[$i]['cgram'] == 'AUX')){
+								break;
+							}
+							
+							if(isset($new_question[$i]['cgram']) && 
+							($new_question[$i]['cgram'] == 'ART:def' ||
+							 $new_question[$i]['cgram'] == 'ADJ:pos' ||
+							 $new_question[$i]['cgram'] == 'PRO:pos')){
+								$collect_pronouns[] = $new_question[$i];
+							}
+						}
+						
+						for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){
+							if(isset($new_question[$i]['cgram']) && 
+							($new_question[$i]['cgram'] == 'VER' || 
+							$new_question[$i]['cgram'] == 'VER:past' || 
+							$new_question[$i]['cgram'] == 'AUX')){
+								break;
+							}
+							
+							if(isset($new_question[$i]['cgram']) && 
+							($new_question[$i]['cgram'] == 'NOM')){
+								$collect_nouns[] = $new_question[$i];
+							}
+						}
+						
 						for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){							
 							if(isset($new_question[$i]['cgram']) && 
 							($new_question[$i]['cgram'] == 'VER' || 
@@ -26,7 +63,36 @@
 								break;
 							}
 							
-							if(isset($new_question[$i]['cgram']) && $new_question[$i]['cgram'] == 'NOM'){
+							if(
+								isset($new_question[$i]['ortho']) &&
+								($new_question[$i]['ortho'] == 'et' || 
+								$new_question[$i]['ortho'] == 'ainsi' || 
+								$new_question[$i]['ortho'] == 'comme')
+							){
+								$addition = 1;
+							}
+							
+							if(isset($new_question[$i - 1]['cgram']) &&
+							($new_question[$i - 1]['cgram'] == 'PRO:per') && $nom_detect == 0){
+								$pre_verb_artDef_genre = $new_question[$i]['genre'];
+								$pre_verb_artDef_nombre = $new_question[$i]['nombre'];
+								$pre_verb = $new_question[$i]['ortho'];
+								break;
+							}
+
+							if(isset($new_question[$i]['cgram']) && 
+							isset($new_question[$i - 1]['cgram']) && 
+							$new_question[$i]['cgram'] == 'NOM' && 
+							$new_question[$i - 1]['cgram'] == 'ADJ'){
+								$nom_detect = 1;
+								$pre_verb_anticipated = $new_question[$i]['ortho'];
+								$pre_verb_anticipated_genre = $new_question[$i]['genre'];
+								$pre_verb_anticipated_nombre = $new_question[$i]['nombre'];
+								continue;
+							}
+							
+							if(isset($new_question[$i]['cgram']) && ($new_question[$i]['cgram'] == 'NOM' || $new_question[$i]['cgram'] == 'ADJ')){
+								$nom_detect = 1;
 								if(
 									isset($new_question[$i - 1]['cgram']) &&
 									($new_question[$i - 1]['cgram'] == 'ART:def' || 
@@ -36,135 +102,72 @@
 									($new_question[$i - 1]['ortho'] != 'aux' && $new_question[$i - 1]['ortho'] != 'au')
 								) {
 									if(isset($new_question[$i - 2]['cgram']) &&	
-									$new_question[$i - 2]['cgram'] == 'ART:def' &&
-									 $new_question[$i - 1]['cgram'] != 'ART:ind'){
+									($new_question[$i - 2]['cgram'] == 'ART:def' || 
+									$new_question[$i - 2]['cgram'] == 'ART:ind' || 
+									$new_question[$i - 2]['cgram'] == 'ADJ:pos' || 
+									$new_question[$i - 2]['cgram'] == 'PRO:pos')){
 										continue;
 									}
 									
-									$pre_verb = $new_question[$i]['ortho'];
+									if(isset($new_question[$i - 2]['cgram']) &&	
+									$new_question[$i - 2]['cgram'] == 'NOM'){
+										continue;
+									}
+									
+									if(!empty($pre_verb_anticipated)){
+										$pre_verb = $pre_verb_anticipated;
+										$pre_verb_artDef_genre = $pre_verb_anticipated_genre;
+										$pre_verb_artDef_nombre = $pre_verb_anticipated_nombre;
+									} else {
+										$pre_verb = $new_question[$i]['ortho'];
+										$pre_verb_artDef_genre = $new_question[$i]['genre'];
+										$pre_verb_artDef_nombre = $new_question[$i]['nombre'];
+									}
 									break;
 								}
 							}
 						}
 						
-						if(!empty($pre_verb)) {
-							$collect_pronouns = array();
-							for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){
-								if($new_question[$i]['ortho'] == $pre_verb){
-									if(isset($new_question[$i]['cgram']) &&
-									 ($new_question[$i]['cgram'] == 'VER' || 
-									 $new_question[$i]['cgram'] == 'VER:past' || 
-									 $new_question[$i]['cgram'] == 'AUX')){
-										break;
-									}
-																
-									if(isset($new_question[$i]['cgram']) && 
-									($new_question[$i]['cgram'] == 'ART:def' || 
-									$new_question[$i]['cgram'] == 'ART:ind' || 
-									$new_question[$i]['cgram'] == 'ADJ:pos' || 
-									$new_question[$i]['cgram'] == 'PRO:pos')){
-										if(
-											(
-												isset($new_question[$i - 1]['ortho']) &&
-												($new_question[$i - 1]['ortho'] == 'et' || 
-												$new_question[$i - 1]['ortho'] == 'ainsi' || 
-												$new_question[$i - 1]['ortho'] == 'comme')
-											) || 
-											(
-												isset($new_question[$i - 2]['ortho']) && 
-												($new_question[$i - 2]['ortho'] == 'et' ||  
-												$new_question[$i - 2]['ortho'] == 'ainsi' || 
-												$new_question[$i - 2]['ortho'] == 'comme')
-											) || 
-											(
-												isset($new_question[$i - 3]['ortho']) && 
-												($new_question[$i - 3]['ortho'] == 'et' ||  
-												$new_question[$i - 3]['ortho'] == 'ainsi' || 
-												$new_question[$i - 3]['ortho'] == 'comme')
-											) 
-										) {
-											for($j = ((($i - 1) > -1) ? ($i - 1) : 0); $j > -1; $j--){
-												if(isset($new_question[$j - 1]['cgram']) &&
-												($new_question[$j - 1]['cgram'] == 'PRO:per')){
-													$pre_verb_artDef_genre = $new_question[$i]['genre'];
-													$pre_verb_artDef_nombre = $new_question[$i]['nombre'];
-													break 2;
-												}
-											}
-											
-											/* IF CANT FIND ANY PRONOUNS */
-											$collect_pronouns[] = $new_question[$i];
-											for($j = ((($i - 1) > -1) ? ($i - 1) : 0); $j > -1; $j--){
-												if(isset($new_question[$j]['cgram']) && 
-												($new_question[$j]['cgram'] == 'ART:def' ||
-												 $new_question[$j]['cgram'] == 'ADJ:pos' ||
-												 $new_question[$j]['cgram'] == 'PRO:pos')){
-													$collect_pronouns[] = $new_question[$j];
-												}
-											}
-										} else {
-											$pre_verb_artDef_genre = $new_question[$i]['genre'];
-											$pre_verb_artDef_nombre = $new_question[$i]['nombre'];
-											break;
-										}
-									}
+						if(!empty($collect_pronouns) && count($collect_pronouns) > 1 && $addition == 1){
+							$f = 0;
+							$m = 0;
+							foreach($collect_pronouns as $key8 => $value8){
+								if($value8['genre'] == 'f'){
+									$f++;
+								} else {
+									$m++;
 								}
 							}
+							$pre_verb_artDef_genre = 'm';
 							
-							if(!empty($collect_pronouns)){
-								$f = 0;
-								$m = 0;
-								foreach($collect_pronouns as $key8 => $value8){
-									if($value8['genre'] == 'f'){
-										$f++;
-									} else {
-										$m++;
-									}
-								}
+							if(($m != 0) && ($f != 0)){
 								$pre_verb_artDef_genre = 'm';
-								
-								if(($m != 0) && ($f != 0)){
-									$pre_verb_artDef_genre = 'm';
+							}
+							if(($m == 0) && ($f != 0)){
+								$pre_verb_artDef_genre = 'f';
+							}
+							
+							$pre_verb_artDef_nombre = 'p';
+						} elseif (!empty($collect_nouns) && count($collect_nouns) > 1 && $addition == 1) {
+							$f = 0;
+							$m = 0;
+							foreach($collect_nouns as $key8 => $value8){
+								if($value8['genre'] == 'f'){
+									$f++;
+								} else {
+									$m++;
 								}
-								if(($m == 0) && ($f != 0)){
-									$pre_verb_artDef_genre = 'f';
-								}
-								
-								$pre_verb_artDef_nombre = 'p';
 							}
-						}
-						
-						$j = 0;
-						for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){
-							if(isset($new_question[$i]['cgram']) && 
-							($new_question[$i]['cgram'] == 'VER' || 
-							$new_question[$i]['cgram'] == 'VER:past' || 
-							$new_question[$i]['cgram'] == 'AUX')){
-								break;
+							$pre_verb_artDef_genre = 'm';
+							
+							if(($m != 0) && ($f != 0)){
+								$pre_verb_artDef_genre = 'm';
+							}
+							if(($m == 0) && ($f != 0)){
+								$pre_verb_artDef_genre = 'f';
 							}
 							
-							if($j == 0 && isset($new_question[$i]['cgram']) && $new_question[$i]['cgram'] == 'NOM'){
-								$j = 1;
-							}
-							
-							if($j == 1 && isset($new_question[$i]['cgram']) && 
-								(
-									($new_question[$i]['ortho'] == 'et' || 
-									$new_question[$i]['ortho'] == 'ainsi' || 
-									$new_question[$i]['ortho'] == 'comme')
-								)
-							){
-								$j = 2;
-							}
-							
-							if($j == 2 && isset($new_question[$i]['cgram']) && $new_question[$i]['cgram'] == 'NOM'){
-								$j = 3;
-							}
-							
-							if($j == 3){
-								$plural = 1;
-								break;
-							}
+							$pre_verb_artDef_nombre = 'p';
 						}
 								
 						if(isset($new_question[$index - 1]) && isset($new_question[$index - 1]['cgram']) && $new_question[$index - 1]['cgram'] == 'PRO:per' && strlen($new_question[$index - 1]['ortho']) == 1){
@@ -446,6 +449,10 @@
 							) {
 								if($person == '1s'){
 									$pro_per = 'j';
+								}
+								
+								if(strlen($path_array[$key - 1]['ortho']) == 1){
+									$pro_per = 'je';
 								}
 							}
 						}

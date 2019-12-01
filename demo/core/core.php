@@ -51,7 +51,12 @@ class core {
 				$value == 'm' ||
 				$value == 'c' ||
 				$value == 'd' ||
-				$value == 'n'
+				$value == 'n' ||
+				$value == 'qu' ||
+				$value == 'puisqu' ||
+				$value == 'lorsqu' ||
+				$value == 'quelqu' ||
+				$value == 'jusqu'
 			) {
 				$unique[$key] = $value.'\'';
 			}
