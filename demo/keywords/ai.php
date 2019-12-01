@@ -255,32 +255,10 @@
 				while ($row = mysqli_fetch_assoc($lexique_query)) { 
 					$data[md5($value)][] = $row; 
 				}
-			} else {
-				/* If no result it means its not a word form dictionnary and stored inside an OTHER array */
-				$build_memory['OTHER'][] = array('ortho' => $value);
 			}
 		}
 		/* Looping through all the question words again */
 		foreach($question_array as $key => $value) {
-			/* If the word of the question is found in the OTHER array, store it inside the human question data array */
-			if(isset($build_memory['OTHER']) && !empty($build_memory['OTHER'])){
-				$test = 0;
-				foreach($build_memory['OTHER'] as $key2 => $value2){
-					if($value2['ortho'] == $value){
-						$path_array[$key]['ortho'] = $value;
-						$path_array[$key]['cgram'] = 'OTHER';
-						$path_array[$key]['genre'] = '';
-						$path_array[$key]['nombre'] = '';
-						$test = 1;
-					}
-				}
-				
-				if($test == 1){
-					/* Continue to next word to avoid storing it again */
-					continue;
-				}
-			}
-			
 			$types = array();
 			if(isset($data[md5($value)])){
 				foreach($data[md5($value)] as $row) {
@@ -433,6 +411,22 @@
 					/* If the word has passed the validation store it in an array to avoid storing it again. */
 					if($trigger == 1) { $types[]= format_word($row['ortho']); }
 				}
+			}
+			if(empty($types) || !isset($data[md5($value)])){
+				$build_memory['OTHER'][] = array(
+					'ortho' => $value,
+					'lemme' => '',
+					'cgram' => 'OTHER',
+					'genre' => '',
+					'nombre' => '',
+					'infover' => ''
+				);
+				$path_array[$key]['ortho'] = $value;
+				$path_array[$key]['cgram'] = 'OTHER';
+				$path_array[$key]['lemme'] = '';
+				$path_array[$key]['infover'] = '';
+				$path_array[$key]['genre'] = '';
+				$path_array[$key]['nombre'] = '';
 			}
 		}
 		
