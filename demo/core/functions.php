@@ -534,6 +534,50 @@
 				$path_array2[$key]['new'] = $pro_per2;
 			}
 		}
+		
+		
+		
+		
+		$detect = 0;
+		foreach($path_array2 as $key => $value){
+			if(isset($path_array2[$key]['cgram']) && 
+			($path_array2[$key]['cgram'] == 'AUX' || $path_array2[$key]['cgram'] == 'VER' || $path_array2[$key]['cgram'] == 'VER:past')){
+				$detect++;
+			}
+		}
+		if($detect == 0){
+			foreach($path_array2 as $key => $value){
+				if(isset($path_array2[$key]['cgram']) && $path_array2[$key]['cgram'] == 'NOM'){
+					if($path_array2[$key]['genre'] == 'm'){
+						$pro = 'il';	
+					} else {
+						$pro = 'elle';
+					}
+					
+					if($path_array2[$key]['nombre'] == 'p'){
+						$pro .= 's';	
+					} else {
+						$pro .= '';
+					}
+					
+					$path_array2[] = array(
+						'ortho' => $pro, 
+						'cgram' => 'PRO:per',
+						'genre' => $path_array2[$key]['genre'],
+						'nombre' => $path_array2[$key]['nombre']
+					);
+					
+					$path_array2[] = array(
+						'ortho' => 'est', 
+						'cgram' => 'AUX',
+						'genre' => 'm',
+						'nombre' => 's'
+					);
+					break;
+				}
+			}
+		}	
+		
 		return array(
 			'path_array' => $path_array2
 		);
