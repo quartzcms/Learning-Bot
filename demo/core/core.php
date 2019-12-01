@@ -109,6 +109,9 @@ class core {
 			$memory_insert = 1;
 			$insert = mysqli_query($this->connexion, "INSERT INTO ai_memory_".$this->type_bot." (".mb_strtolower(implode(',', array_keys($this->data_to_insert)), 'UTF-8').", human, pattern, question, keywords, wikipedia, ip) VALUES ('".mb_strtolower(implode('\',\'', array_values($this->data_to_insert)), 'UTF-8')."', '".addslashes($this->pattern_sentence)."', '".addslashes($this->pattern_learn)."', '".addslashes(use_session('last_question_sentence_'.$this->type_bot))."', '". json_encode(use_session('links_'.$this->type_bot), JSON_UNESCAPED_UNICODE)."', '".addslashes($append_data)."', '".$ip_user."')") or die (mysqli_error($this->connexion));
 			write_session('last_question_sentence_'.$this->type_bot, '');
+			$used_id = use_session('used_id_'.$this->type_bot);
+			$used_id[] = mysqli_insert_id($this->connexion);
+			write_session('used_id_'.$this->type_bot, $used_id);
 		}
 		
 		return array(

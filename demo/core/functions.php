@@ -441,11 +441,12 @@
 						
 						if(!empty($pro_per)){
 							if(
-								substr($row['ortho'], 0, 1) == 'a' ||
-								substr($row['ortho'], 0, 1) == 'e' ||
-								substr($row['ortho'], 0, 1) == 'i' ||
-								substr($row['ortho'], 0, 1) == 'o' ||
-								substr($row['ortho'], 0, 1) == 'u' 
+								mb_substr($row['ortho'], 0, 1, 'UTF-8') == 'a' ||
+								mb_substr($row['ortho'], 0, 1, 'UTF-8') == 'e' ||
+								mb_substr($row['ortho'], 0, 1, 'UTF-8') == 'é' ||
+								mb_substr($row['ortho'], 0, 1, 'UTF-8') == 'i' ||
+								mb_substr($row['ortho'], 0, 1, 'UTF-8') == 'o' ||
+								mb_substr($row['ortho'], 0, 1, 'UTF-8') == 'u' 
 							) {
 								if($person == '1s'){
 									$pro_per = 'j';
