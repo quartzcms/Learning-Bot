@@ -583,103 +583,86 @@
 		/* If the chatbot is not learning, loop through all human question data array values and add appropriate conditions */
 		$accepted = array('nom', 'other', 'adj', 'ver');		
 		if($memory_insert != 1){
-			$build_conditions4 = array();
-			$detect_important_words = 0;
-			$limit_important_words = 1;
-			if(count($path_array) <= 4){
-				$limit_important_words = 2;
-			}
-			
+			$build_conditions4 = array();			
 			foreach($path_array as $key => $value){
-				if($value['cgram'] == 'VER') {
-					$detect_important_words++;
-				}
-				if($value['cgram'] == 'NOM') {
-					$detect_important_words++;
-				}
-				if($value['cgram'] == 'OTHER') {
-					$detect_important_words++;
-				}
-				if($value['cgram'] == 'ADJ') {
-					$detect_important_words++;
+				$new = array();
+				$index = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
+				if(in_array($index, $accepted)){
+					$build_conditions4[$index][] = 'keywords LIKE \'%"'.addslashes($value['ortho']).'"%\'';
 				}
 			}
-			
-			if($detect_important_words >= $limit_important_words){
-				foreach($path_array as $key => $value){
-					$new = array();
-					$index = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
-					if(in_array($index, $accepted)){
-						$build_conditions4[$index][] = 'keywords LIKE \'%"'.addslashes($value['ortho']).'"%\'';
-					}
-				}
-				foreach($build_conditions4 as $key => $value){
-					if(!empty($value)){
-						$query4[] = '('.implode(' COLLATE utf8_bin OR ', $value).' COLLATE utf8_bin)';
-					}
-				}
-				
-				if(!empty($query4)){
-					$query_used = '';
-					$query_links = '';
-					if(use_session('used_id_'.$type_bot)){
-						$query_used .= ' AND id NOT IN ('.implode(',', use_session('used_id_'.$type_bot)).')';
+			foreach($build_conditions4 as $key => $value){
+				if(!empty($value)){
+					if($key == 'ver' || $key == 'nom'){
+						$condition = 'AND';
+					} else {
+						$condition = 'OR';
 					}
 					
-					$links = array();
-					/* Adding old short term memory values to the database memory query */
-					foreach($accepted as $key1 => $value1) {
-						$array_ = use_session('links_'.$type_bot);
-						if(isset($array_[$value1]) && !empty($array_[$value1])){
-							foreach($array_[$value1] as $key => $value){
-								$links[] = 'keywords LIKE \'%"'.addslashes($array_[$value1][$key]).'"%\'';
-							}
+					$query4[] = '('.implode(' COLLATE utf8_bin '.$condition.' ', $value).' COLLATE utf8_bin)';
+				}
+			}
+			
+			if(!empty($query4)){
+				$query_used = '';
+				$query_links = '';
+				if(use_session('used_id_'.$type_bot)){
+					$query_used .= ' AND id NOT IN ('.implode(',', use_session('used_id_'.$type_bot)).')';
+				}
+				
+				$links = array();
+				/* Adding old short term memory values to the database memory query */
+				foreach($accepted as $key1 => $value1) {
+					$array_ = use_session('links_'.$type_bot);
+					if(isset($array_[$value1]) && !empty($array_[$value1])){
+						foreach($array_[$value1] as $key => $value){
+							$links[] = 'keywords LIKE \'%"'.addslashes($array_[$value1][$key]).'"%\'';
 						}
 					}
-					
-					if(!empty($links)){
-						$query_links .= ' OR ('.implode(' COLLATE utf8_bin AND ', $links).' COLLATE utf8_bin)';
-					}
-					
-					$first_query = array();
-					
-					if(!empty($query4)){
-						$first_query[] = '('.implode(') AND (', $query4).')';
-					}
-					
-					$query = 'WHERE (('.implode(') OR (', $first_query).')'.$query_links.') AND (pattern LIKE \'%{%\' AND pattern LIKE \'%}%\') AND ip = "'.$ip_user.'"'.$query_used;
-				} else {
-					$query = 'WHERE (id = 0) AND ip = "'.$ip_user.'"';
 				}
-				/* Querying the database for a match */
-				$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_".$type_bot." ".$query." ORDER BY id DESC LIMIT 1") or die (mysqli_error($connexion));
-				$data = mysqli_fetch_assoc($memory_query);
 				
-				if(mysqli_num_rows($memory_query) > 0){
-					/* If a match is found store the ID in the used IDs array session */
-					$used_id = use_session('used_id_'.$type_bot);
-					$used_id[] = $data['id'];
-					write_session('used_id_'.$type_bot, $used_id);
-					$randWords = rand(1, 5);
-					
-					if(!empty($data)){
-						/* Getting the pattern outputed for side block data */
-						$data['pattern'] = str_replace(' {', '{', $data['pattern']);
-						$data['pattern'] = str_replace('} ', '}', $data['pattern']);
-						$pattern = preg_split('/[\{,\}]/', $data['pattern']);
-						$pattern_chosen = implode(',', array_filter($pattern, function($value) { return $value !== ''; }));
-					}
-					
-					if(!empty($data)){
-						/* Add new verbs and nouns to the already said detection variable */
-						$new_sentence = '';
-						$ver = json_decode($data['ver'], true);
-						$nom = json_decode($data['nom'], true);
-						$new_sentence .= (is_array($ver) ? implode($ver) : '');
-						$new_sentence .= (is_array($nom) ? implode($nom) : '');
-						/* Store the bot response in the pattern variable */
-						$pattern = $data['human'];
-					}
+				if(!empty($links)){
+					$query_links .= ' OR ('.implode(' COLLATE utf8_bin AND ', $links).' COLLATE utf8_bin)';
+				}
+				
+				$first_query = array();
+				
+				if(!empty($query4)){
+					$first_query[] = '('.implode(') AND (', $query4).')';
+				}
+				
+				$query = 'WHERE (('.implode(') OR (', $first_query).')'.$query_links.') AND (pattern LIKE \'%{%\' AND pattern LIKE \'%}%\') AND ip = "'.$ip_user.'"'.$query_used;
+			} else {
+				$query = 'WHERE (id = 0) AND ip = "'.$ip_user.'"';
+			}
+			/* Querying the database for a match */
+			$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_".$type_bot." ".$query." ORDER BY id DESC LIMIT 1") or die (mysqli_error($connexion));
+			$data = mysqli_fetch_assoc($memory_query);
+			
+			if(mysqli_num_rows($memory_query) > 0){
+				/* If a match is found store the ID in the used IDs array session */
+				$used_id = use_session('used_id_'.$type_bot);
+				$used_id[] = $data['id'];
+				write_session('used_id_'.$type_bot, $used_id);
+				$randWords = rand(1, 5);
+				
+				if(!empty($data)){
+					/* Getting the pattern outputed for side block data */
+					$data['pattern'] = str_replace(' {', '{', $data['pattern']);
+					$data['pattern'] = str_replace('} ', '}', $data['pattern']);
+					$pattern = preg_split('/[\{,\}]/', $data['pattern']);
+					$pattern_chosen = implode(',', array_filter($pattern, function($value) { return $value !== ''; }));
+				}
+				
+				if(!empty($data)){
+					/* Add new verbs and nouns to the already said detection variable */
+					$new_sentence = '';
+					$ver = json_decode($data['ver'], true);
+					$nom = json_decode($data['nom'], true);
+					$new_sentence .= (is_array($ver) ? implode($ver) : '');
+					$new_sentence .= (is_array($nom) ? implode($nom) : '');
+					/* Store the bot response in the pattern variable */
+					$pattern = $data['human'];
 				}
 			}
 		}
