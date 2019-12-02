@@ -7,8 +7,6 @@
 				$tenses = $value['infover'];
 				$after_verb = '';
 				$pre_verb = '';
-				$middle_verb = '';
-				$middle_current_verb = '';	
 				$pre_verb_artDef_genre = '';
 				$pre_verb_artDef_nombre = '';
 				$plural = 0;
@@ -169,20 +167,6 @@
 							
 							$pre_verb_artDef_nombre = 'p';
 						}
-								
-						if(isset($new_question[$index - 1]) && isset($new_question[$index - 1]['cgram']) && $new_question[$index - 1]['cgram'] == 'PRO:per' && strlen($new_question[$index - 1]['ortho']) == 1){
-							$middle_current_verb = $new_question[$index - 1]['ortho'];
-							
-							if($new_question[$index - 1]['ortho'] == 'm'){
-								$middle_verb = 't';
-							} elseif($new_question[$index - 1]['ortho'] == 't') {
-								$middle_verb = 'm';
-							} elseif($new_question[$index - 1]['ortho'] == 's') {
-								$middle_verb = 's';
-							} elseif($new_question[$index - 1]['ortho'] == 'y') {
-								$middle_verb = 'y';
-							}
-						}
 						
 						for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){
 							if(isset($new_question[$i]['cgram']) && 
@@ -192,7 +176,7 @@
 								break;
 							}
 														
-							if(isset($new_question[$i]['cgram']) && ($new_question[$i]['cgram'] == 'PRO:per' || $new_question[$i]['cgram'] == 'PRO:dem') && $new_question[$i]['ortho'] != $middle_verb){
+							if(isset($new_question[$i]['cgram']) && ($new_question[$i]['cgram'] == 'PRO:per' || $new_question[$i]['cgram'] == 'PRO:dem')){
 								$pronoun_verb = $new_question[$i]['ortho'];
 								
 								if (
@@ -222,10 +206,7 @@
 								$pronoun_verb == 'celui' || 
 								$pronoun_verb == 'ceci' || 
 								$pronoun_verb == 'cela' || 
-								$pronoun_verb == 'c' || 
-								$pronoun_verb == 'm' || 
-								$pronoun_verb == 's' || 
-								$pronoun_verb == 't' ||
+								$pronoun_verb == 'c' ||
 								$pronoun_verb == 'on'
 								){
 									$id_pronouns = $i;
@@ -450,10 +431,10 @@
 							) {
 								if($person == '1s'){
 									$pro_per = 'j';
-								}
-								
-								if(isset($path_array[$key - 1]['ortho']) && strlen($path_array[$key - 1]['ortho']) == 1){
-									$pro_per = 'je';
+
+									if(isset($path_array[$key - 1]['ortho']) && strlen($path_array[$key - 1]['ortho']) == 1){
+										$pro_per = 'je';
+									}									
 								}
 							}
 						}
