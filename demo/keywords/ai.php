@@ -582,6 +582,28 @@
 				$new = array();
 				$index = str_replace(':', '_', mb_strtolower($value['cgram'], 'UTF-8'));
 				if(in_array($index, $accepted)){
+					if($index == 'ver'){
+						$index = $index.md5($value['ortho']);
+					
+						$lexique_query2 = mysqli_query($connexion, "SELECT * FROM lexique WHERE lemme = '".$value['lemme']."'") or die (mysqli_error($connexion));
+						if(mysqli_num_rows($lexique_query2) > 0){
+							while ($row = mysqli_fetch_assoc($lexique_query2)) { 
+								$build_conditions4[$index][] = 'keywords LIKE \'%"'.addslashes($row['ortho']).'"%\'';
+							}
+						}
+					} elseif($index == 'nom'){
+						$index = $index.md5($value['ortho']);
+						
+						$synonymous_query2 = mysqli_query($connexion, "SELECT matches FROM synonymes WHERE keyword = '".addslashes($value['ortho'])."' AND cgram2 LIKE '%Nom%'") or die (mysqli_error($connexion));
+						if(mysqli_num_rows($synonymous_query2) > 0){
+							$row = mysqli_fetch_assoc($synonymous_query2);
+							$matches = explode('|', $row['matches']);
+							foreach($matches as $value2){
+								$build_conditions4[$index][] = 'keywords LIKE \'%"'.addslashes($value2).'"%\'';
+							}
+						}
+					}
+					
 					$build_conditions4[$index][] = 'keywords LIKE \'%"'.addslashes($value['ortho']).'"%\'';
 				}
 			}
@@ -603,13 +625,7 @@
 			
 			foreach($build_conditions4 as $key => $value){
 				if(!empty($value)){
-					if($key == 'ver' || $key == 'nom'){
-						$condition = 'AND';
-					} else {
-						$condition = 'OR';
-					}
-					
-					$query4[] = '('.implode(' COLLATE utf8_bin '.$condition.' ', $value).' COLLATE utf8_bin)';
+					$query4[] = '('.implode(' COLLATE utf8_bin OR ', $value).' COLLATE utf8_bin)';
 				}
 			}
 			
