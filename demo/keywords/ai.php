@@ -819,12 +819,12 @@
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_def,art_def+,nom**2,adj+**1,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_ind,nom**1,adj+**1,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_def,art_def+,nom**2,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,adv+,ver_past**5,art_def,art_def+,nom**2,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,ver_past**5,art_def,art_def+,nom**2,adj+**1,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,pro_per*4,adv+,ver_past**2,question';
 				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,pro_per_con+,aux*4,pro_per*1,adv+,ver_past**2,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,ver_past**5,art_ind,nom**1,adj+**1,dot';
 				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,adv+,ver_past**5,art_def,art_def+,nom**2,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,ver_past**5,art_def,art_def+,nom**2,dot';
 				$modele[] = 'art_def,art_def+,nom|other**2,adj+**1,other,pro_per_con+,aux*6,pro_per*1,adv+,ver_past**2,question';
 				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,question';
 				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj**1,question';
@@ -851,8 +851,8 @@
 			} elseif ($action[$rand] == 'sug') {
 				/* If no verb in the sentence */
 				if(empty($response['ver'])){
-					$modele[] = 'pro_per,pro_per_con+,aux*2,adv+,ver_past,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_def,art_def+,nom**2,dot';
-					$modele[] = 'pro_per,pro_per_con+,aux*2,ver_past,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,adj**2,dot';
+					$modele[] = 'pro_per,pro_per_con+,aux*2,adv+,ver_past**4,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_def,art_def+,nom**2,dot';
+					$modele[] = 'pro_per,pro_per_con+,aux*2,ver_past**3,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,adj**2,dot';
 				}
 				$modele[] = 'pro_per,pro_per_con+,ver**2,art_def|adj_num|adj_pos,other,adj+,art_def,art_def+,nom|other**2,dot';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,ver**2,adv+,art_ind,nom**1,adj+**1,dot';
@@ -891,7 +891,7 @@
 				if(empty($response['ver'])){
 					$modele[] = 'pro_per_con+,aux,pro_per*1,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
 					$modele[] = 'pro_per,pro_per_con+,aux*2,adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
-					$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,aux*2,adv+,ver_past,question';
+					$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,aux*2,adv+,ver_past**4,question';
 					$modele[] = 'pro_per_con+,aux,pro_per*1,art_def,art_def+,nom|other**2,adj+**1,question';
 					$modele[] = 'pro_per_con+,aux,pro_per*1,art_ind,nom|other**1,adj+**1,question';
 				}
@@ -906,7 +906,7 @@
 					$modele[] = 'pro_per,pro_per_con+,aux*2,adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**2,dot';
 				}
 				$modele[] = 'pro_per,pro_per_con+,ver|aux*2,art_def,art_def+,nom|other**2,adj+**1,dot';
-				$modele[] = 'ver,pro_per_con+,pro_per*1,lia,ver_inf,art_def,art_def+,nom|other**2,adj+**1,dot';
+				$modele[] = 'ver,pro_per_con+,pro_per*2,lia,ver_inf,art_def,art_def+,nom|other**2,adj+**1,dot';
 				$modele[] = 'pro_per,pro_per_con+,ver|aux*2,art_ind,nom|other**1,adj+**1,dot';
 				$modele[] = 'pro_per,pro_per_con+,ver|aux*2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,dot';
 				/* If no verb in the sentence */

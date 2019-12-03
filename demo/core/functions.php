@@ -69,6 +69,15 @@
 							){
 								$addition = 1;
 							}
+						}
+						
+						for($i = ((($index - 1) > -1) ? ($index - 1) : 0); $i > -1; $i--){							
+							if(isset($new_question[$i]['cgram']) && 
+							($new_question[$i]['cgram'] == 'VER' || 
+							$new_question[$i]['cgram'] == 'VER:past' || 
+							$new_question[$i]['cgram'] == 'AUX')){
+								break;
+							}
 							
 							if(isset($new_question[$i - 1]['cgram']) &&
 							($new_question[$i - 1]['cgram'] == 'PRO:per') && $nom_detect == 0){
@@ -419,6 +428,14 @@
 					if(mysqli_num_rows($lexique_query) > 0){
 						$row = mysqli_fetch_assoc($lexique_query);
 						$path_array[$key]['new'] = $row['ortho'];
+						
+						if(!empty($pre_verb_artDef_genre) || !empty($pre_verb_artDef_nombre)){
+							$path_array[$key]['genre'] = isset($path_array[$key]['genre']) ? $path_array[$key]['genre'] : $pre_verb_artDef_genre;
+							$path_array[$key]['nombre'] = isset($path_array[$key]['genre']) ? $path_array[$key]['genre'] : $pre_verb_artDef_nombre;
+						} elseif(!empty($pro_genre) || !empty($pro_nombre)) {
+							$path_array[$key]['genre'] = isset($path_array[$key]['genre']) ? $path_array[$key]['genre'] : $pro_genre;
+							$path_array[$key]['nombre'] = isset($path_array[$key]['genre']) ? $path_array[$key]['genre'] : $pro_nombre;
+						}
 						
 						if(!empty($pro_per)){
 							if(
