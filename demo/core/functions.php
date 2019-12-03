@@ -429,12 +429,12 @@
 						$row = mysqli_fetch_assoc($lexique_query);
 						$path_array[$key]['new'] = $row['ortho'];
 						
-						if(!empty($pre_verb_artDef_genre) || !empty($pre_verb_artDef_nombre)){
-							$path_array[$key]['genre'] = isset($path_array[$key]['genre']) ? $path_array[$key]['genre'] : $pre_verb_artDef_genre;
-							$path_array[$key]['nombre'] = isset($path_array[$key]['genre']) ? $path_array[$key]['genre'] : $pre_verb_artDef_nombre;
-						} elseif(!empty($pro_genre) || !empty($pro_nombre)) {
-							$path_array[$key]['genre'] = isset($path_array[$key]['genre']) ? $path_array[$key]['genre'] : $pro_genre;
-							$path_array[$key]['nombre'] = isset($path_array[$key]['genre']) ? $path_array[$key]['genre'] : $pro_nombre;
+						if($detect == 0){
+							$path_array[$key]['genre'] = !empty($path_array[$key]['genre']) ? $path_array[$key]['genre'] : 'm';
+							$path_array[$key]['nombre'] = !empty($path_array[$key]['nombre']) ? $path_array[$key]['nombre'] : $pre_verb_artDef_nombre;
+						} else {
+							$path_array[$key]['genre'] = !empty($path_array[$key]['genre']) ? $path_array[$key]['genre'] : 'm';
+							$path_array[$key]['nombre'] = !empty($path_array[$key]['nombre']) ? $path_array[$key]['nombre'] : $pro_nombre;
 						}
 						
 						if(!empty($pro_per)){
