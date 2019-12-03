@@ -559,19 +559,18 @@
 						$pro .= '';
 					}
 					
-					$path_array2[] = array(
+					array_unshift($path_array2, array(
 						'ortho' => $pro, 
 						'cgram' => 'PRO:per',
 						'genre' => $path_array2[$key]['genre'],
 						'nombre' => $path_array2[$key]['nombre']
-					);
-					
-					$path_array2[] = array(
+					), array(
 						'ortho' => 'est', 
 						'cgram' => 'AUX',
 						'genre' => 'm',
 						'nombre' => 's'
-					);
+					));
+					
 					break;
 				}
 			}
