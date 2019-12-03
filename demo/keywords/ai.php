@@ -413,20 +413,22 @@
 				}
 			}
 			if(empty($types) || !isset($data[md5($value)])){
-				$build_memory['OTHER'][] = array(
-					'ortho' => $value,
-					'lemme' => '',
-					'cgram' => 'OTHER',
-					'genre' => '',
-					'nombre' => '',
-					'infover' => ''
-				);
-				$path_array[$key]['ortho'] = $value;
-				$path_array[$key]['cgram'] = 'OTHER';
-				$path_array[$key]['lemme'] = '';
-				$path_array[$key]['infover'] = '';
-				$path_array[$key]['genre'] = '';
-				$path_array[$key]['nombre'] = '';
+				if($value !== 'julie' || $value !== 'sandra'){
+					$build_memory['OTHER'][] = array(
+						'ortho' => $value,
+						'lemme' => '',
+						'cgram' => 'OTHER',
+						'genre' => '',
+						'nombre' => '',
+						'infover' => ''
+					);
+					$path_array[$key]['ortho'] = $value;
+					$path_array[$key]['cgram'] = 'OTHER';
+					$path_array[$key]['lemme'] = '';
+					$path_array[$key]['infover'] = '';
+					$path_array[$key]['genre'] = '';
+					$path_array[$key]['nombre'] = '';
+				}
 			}
 		}
 		
