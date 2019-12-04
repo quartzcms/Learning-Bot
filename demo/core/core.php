@@ -112,6 +112,7 @@ class core {
 			$used_id = use_session('used_id_'.$this->type_bot);
 			$used_id[] = mysqli_insert_id($this->connexion);
 			write_session('used_id_'.$this->type_bot, $used_id);
+			write_session('last_inserted_id_'.$this->type_bot, mysqli_insert_id($this->connexion));
 		}
 		
 		return array(
