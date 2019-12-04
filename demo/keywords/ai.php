@@ -53,9 +53,15 @@
 	}
 	
 	/* Retake last human question if current human question is a simple yes or no */
+	$detect_negative = 0;
 	if(isset($_POST['question']) && !empty($_POST['question']) && use_session('last_human_question_'.$type_bot)){
-		if((strpos($_POST['question'], 'oui') !== false || strpos($_POST['question'], 'non') !== false)){
+		$question_human = explode(' ', $_POST['question']);
+		if(in_array('oui', $question_human) || in_array('non', $question_human)){
 			$_POST['question'] = use_session('last_human_question_'.$type_bot);
+		}
+		if(in_array('non', $question_human) || in_array('pas', $question_human)){
+			/* Used for later (memory delete) */
+			$detect_negative = 1;
 		}
 	}
 	write_session('last_human_question_'.$type_bot, $_POST['question']);
@@ -548,8 +554,65 @@
 				$full = 1;
 			}
 		}
+		
+		/* Delete last save row matched in memory if the answer is negative */
+		if($detect_negative == 1){
+			$verbs = array(); 
+			$build_conditions4 = array();
+			$query4 = array();
+			$first_query = array();
+			
+			foreach($path_array as $key => $value) {
+				if($value['cgram'] == 'VER' || $value['cgram'] == 'VER:past' || $value['cgram'] == 'VER:inf'){
+					$verbs[] = $value['lemme'];
+				}
+			}
+			
+			/* Find all verbs tense for all the verbs of the user path and put in array */
+			if(!empty($verbs)){
+				foreach($verbs as $key => $value){
+					$lexique_query2 = mysqli_query($connexion, "SELECT * FROM lexique WHERE lemme = '".addslashes($value)."'") or die (mysqli_error($connexion));
+					if(mysqli_num_rows($lexique_query2) > 0){
+						while ($row = mysqli_fetch_assoc($lexique_query2)) { 
+							if($row['cgram'] == 'VER:inf'){
+								$build_conditions4[md5($value)][] = 'ver_inf LIKE \'%"'.addslashes($row['ortho']).'"%\'';
+							} elseif($row['cgram'] == 'VER:past') { 
+								$build_conditions4[md5($value)][] = 'ver_past LIKE \'%"'.addslashes($row['ortho']).'"%\'';
+							} elseif($row['cgram'] == 'VER') { 
+								$build_conditions4[md5($value)][] = 'ver LIKE \'%"'.addslashes($row['ortho']).'"%\'';
+							}
+						}
+					}
+				}
+			}
+			
+			/* glue each verbs (all tense) to make group with an OR condition for the query */
+			if(!empty($build_conditions4)){
+				foreach($build_conditions4 as $key => $value){
+					if(!empty($value)){
+						$query4[] = '('.implode(' COLLATE utf8_bin OR ', $value).' COLLATE utf8_bin)';
+					}
+				}
+			}
+			
+			/* glue all the different main verbs groups together with an AND condition */
+			if(!empty($query4)){
+				$first_query[] = '('.implode(') AND (', $query4).')';
+			}
+			/* If one row was inserted before */
+			if(use_session('last_inserted_id_'.$type_bot) && !empty($first_query)){
+				$memory = mysqli_query($connexion, "SELECT * FROM ai_memory_".$type_bot." WHERE id = '" . use_session('last_inserted_id_'.$type_bot) . "' AND (".implode(') OR (', $first_query).")") or die (mysqli_error($connexion));
+				
+				/* If one result is are found using the query of the user path and last ID, and if the word 'no' is found, delete the last memory row inserted */
+				if(mysqli_num_rows($memory) > 0){
+					mysqli_query($connexion, "DELETE FROM ai_memory_".$type_bot." WHERE id = '" . use_session('last_inserted_id_'.$type_bot)."'") or die (mysqli_error($connexion));
+					write_session('last_inserted_id_'.$type_bot, '');
+				}
+			}
+		}
+
 		/* If the sentence contains a posessive adjective or if the last bot response is a question or if the * character is found the chatbot will learn */
-		if((isset($build_memory['ADJ:pos']) || isset($build_memory['PRO:pos']) || $trigger_verb == 'learn' || $freecard == 1) && $full == 1){
+		if((isset($build_memory['ADJ:pos']) || isset($build_memory['PRO:pos']) || $trigger_verb == 'learn' || $freecard == 1) && $full == 1 && $detect_negative == 0){
 			$order_pro_ver = array();
 			/* Create the sentence pattern with each word types */
 			$core->createPatterns();
@@ -703,6 +766,8 @@
 			$bot_notes[use_session('count_response_'.$type_bot)] = $new_sentence;
 			write_session('note_'.$type_bot, $bot_notes);
 		}
+		
+		
 		
 		/* Function to verify granting in the sentence */
 		function verify_grammar($full_tag, $kept_ones2, $key, $tag, $end, $recreate, $response_temp) {
