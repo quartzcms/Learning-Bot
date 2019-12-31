@@ -19,6 +19,31 @@
         <script type="text/javascript" src="templates/default/js/jquery-1.11.1.min.js"></script>
 		<script type="text/javascript" src="templates/default/bootstrap/js/bootstrap.min.js"></script>
         <script src='//code.responsivevoice.org/responsivevoice.js'></script>
+		<style type="text/css">
+			code p {
+				-webkit-animation: fadeinout 0.5s linear forwards; /* Safari, Chrome and Opera > 12.1 */
+				   -moz-animation: fadeinout 0.5s linear forwards; /* Firefox < 16 */
+					-ms-animation: fadeinout 0.5s linear forwards; /* Internet Explorer */
+					 -o-animation: fadeinout 0.5s linear forwards; /* Opera < 12.1 */
+						animation: fadeinout 0.5s linear forwards;
+			}
+			@keyframes fadeinout {
+				0%,100% { opacity: 0.5; }
+				50% { opacity: 1; }
+			}
+			@-moz-keyframes fadeinout { /* Firefox */
+				0%,100% { opacity: 0.5; }
+				50% { opacity: 1; }
+			}
+			@-webkit-keyframes fadeinout { /* Safari and Chrome */
+				0%,100% { opacity: 0.5; }
+				50% { opacity: 1; }
+			}
+			@-o-keyframes fadeinout { /* Opera */
+				0%,100% { opacity: 0.5; }
+				50% { opacity: 1; }
+			}
+		</style>
 	</head>
 	<body>
         <section>
@@ -216,15 +241,36 @@
 														
 														if(json.analyse != '') {
 															console.log(json.analyse);
+															var keyword_array = [];
 															$('.type .answer').html(json.analyse.detect);
 															$.each(json.analyse.links, function(index, value){
 																var list = $('<ul style="padding: 0% 2% 2% 0%; margin: 0px; list-style-type: none; float:left; width:23%;"><li><p><u>'+ index +':</u></p><ul></ul></li></ul>');
 																$.each(value, function(index2, value2){
 																	list.append('<li>' + value2 + '</li>');
+																	keyword_array.push(value2);
 																});
 																
 																$('.keywords .answer').append(list);
 															});
+															
+															var formData = new FormData();
+															formData.append('list', keyword_array);
+															$.ajax({
+																url: '/cgi-bin/shaper.cgi',
+																type: 'POST',
+																data: formData,
+																enctype: 'multipart/form-data',
+																processData: false,
+																contentType: false,
+																dataType: 'json',
+																success: function(json) {
+																	var time = 400;
+																	$.each(json, function(index, value){
+																		setTimeout( function(){ $('.response-face code').html("<p style='margin:0px; line-height:1em;'>" + value.join("</p><p style='margin:0px; line-height:1em;'>") + "</p>"); }, time); time += 400; 
+																	});
+																}
+															});
+															
 															$('.used_id .answer').html(json.analyse.used_id);
 															$('.counter .answer').html(json.analyse.counter);
 															$('.action .answer').html(json.analyse.action);
@@ -296,7 +342,15 @@
 									write_session('table', '');
 								?>
 								<div class="row">
-									<div class="col-md-8">
+									<div class="col-md-3">
+										<h3 style="margin-top: 0px;"><span class="glyphicon glyphicon-user"></span>Face</h3>
+										<div class="well box-response-face">
+											<div class="response-face" style="width: 100%; height: 350px; overflow-y: scroll;">
+												<code style="font-size: 4px; line-height:0.5em; color: #888888;"></code>
+											</div>
+										</div>
+									</div>
+									<div class="col-md-5">
 										<h3 style="margin-top: 0px;"><span class="glyphicon glyphicon-user"></span>Julie</h3>
 										<div class="well box-response">
 											<div class="response" style="width: 100%; height: 350px; overflow-y: scroll;"></div>
