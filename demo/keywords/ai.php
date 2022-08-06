@@ -103,6 +103,7 @@
 		write_session('used_id_'.$type_bot, array());
 		write_session('note_'.$type_bot, array());
 		write_session('last_response_'.$type_bot, array());
+		write_session('stored_syntax_'.$type_bot, array());
 	}
 	/* Set a new array element (index of the response count) to the note session */
 	$bot_notes = use_session('note_'.$type_bot);
@@ -164,8 +165,23 @@
 				/* Making sure its only one word */
 				if(strpos($result[$key], ' ') === false) {
 					/* Query wikipedia for the word description */
-					$data = file_get_contents('https://'.$wiki_lang.'wikipedia.org/w/api.php?action=opensearch&search='.$result[$key].'&limit=1&format=json');
-					$data = json_decode($data, true);
+					$endPoint = "https://".$wiki_lang.".wikipedia.org/w/api.php";
+					$params = [
+						"action" => "opensearch",
+						"search" => $result[$key],
+						"limit" => "1",
+						"namespace" => "0",
+						"format" => "json"
+					];
+
+					$wiki_url = $endPoint . "?" . http_build_query($params);
+
+					$ch = curl_init($wiki_url);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					$output_wiki = curl_exec($ch);
+					curl_close($ch);
+					$data = json_decode($output_wiki, true);
+					
 					if(isset($data[2][0]) && !empty($data[2][0]) && substr($data[2][0], -1) == '.') { 
 						/* Storing first description in an array */
 						$description[] = html_entity_decode($data[2][0], ENT_QUOTES);
@@ -222,15 +238,38 @@
 		$_POST['question'] = str_replace('-le', ' le', $_POST['question']);
 		$_POST['question'] = str_replace('-la', ' la', $_POST['question']);
 		$_POST['question'] = str_replace('-les', ' les', $_POST['question']);
-		/* Clean unecessary characters */
-		$_POST['question'] = str_replace('\'', ' ', $_POST['question']);
+		/* Clean unnecessary characters */
 		$_POST['question'] = str_replace('.', '', $_POST['question']);
 		$_POST['question'] = str_replace(':', '', $_POST['question']);
 		$_POST['question'] = str_replace(';', '', $_POST['question']);
 		$_POST['question'] = str_replace(',', '', $_POST['question']);
 		$_POST['question'] = mb_strtolower($_POST['question'], 'UTF-8');
 		/* Make the sentence into an array */
+		$question_array2 = preg_split("/[\s]/", trim(str_replace('?', '', $_POST['question']), ' '));
+		$_POST['question'] = str_replace('\'', ' ', $_POST['question']);
 		$question_array = preg_split("/[\s]/", trim(str_replace('?', '', $_POST['question']), ' '));
+		foreach($question_array2 as $key => $value){
+			if(strpos($value, '\'') === false){
+				unset($question_array2[$key]);
+			}
+		}
+		
+		foreach($question_array as $key => $value){
+			if(isset($question_array[$key]) && isset($question_array[$key + 1])){
+				if(in_array($question_array[$key].'\''.$question_array[$key + 1], $question_array2) && strlen($question_array[$key]) != 1){
+					if($question_array[$key + 1] != 'il' && $question_array[$key + 1] != 'elle' && 
+					$question_array[$key + 1] != 'ils' && $question_array[$key + 1] != 'elles' &&
+					$question_array[$key + 1] != 'on' && $question_array[$key] != 'qu' && 
+					$question_array[$key] != 'quelqu') {
+						$word = $question_array[$key].'\''.$question_array[$key + 1];
+						$question_array[$key] = $word;
+						unset($question_array[$key + 1]);
+					}
+				}
+			}
+		}
+		$question_array = array_values($question_array);
+		
 		$question_array = array_filter($question_array, function($value) { return $value !== ''; });
 		$path_array = array();
 		/* Free card to make the AI learn if * character is used */
@@ -275,7 +314,7 @@
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) &&
 						(
-							in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) ||
+							//in_array('ART:def', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
@@ -284,6 +323,23 @@
 					){
 						/* Exclude this match from database for the current word */
 						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
+						$question_array[$key - 1] != 'ne' && 
+						isset($words_kept_array[$question_array[$key - 1]]) &&
+						isset($data[md5($value)]) &&
+						in_array('ADV', $words_kept_array[$question_array[$key - 1]]) &&
+						($row['cgram'] == 'VER' || $row['cgram'] == 'VER:past')
+					){
+						/* Exclude this match from database for the current word */
+						
+						foreach($data[md5($value)] as $row1) {
+							if($row1['cgram'] == 'ADV'){
+								$trigger = 0;
+							}
+						}
 					}
 					
 					/* If last word is a determinant and current word is a infinitive verb */
@@ -295,6 +351,66 @@
 					){
 						/* Exclude this match from database for the current word */
 						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) && (
+							in_array('PRO:ind', $words_kept_array[$question_array[$key - 1]])
+						) && isset($question_array[$key - 2]) &&
+						isset($words_kept_array[$question_array[$key - 2]]) && (
+							in_array('VER:inf', $words_kept_array[$question_array[$key - 2]])
+						) && ($row['cgram'] == 'VER')
+					){
+						/* Exclude this match from database for the current word */
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key + 1]) &&
+						($row['cgram'] == 'VER') && (strpos($row['infover'], 'par:pre;') !== false) &&
+						isset($data[md5($question_array[$key + 1])])
+					){
+						foreach($data[md5($question_array[$key + 1])] as $row2) {
+							if($row2['cgram'] == 'VER'){
+								/* Exclude this match from database for the current word */
+								$trigger = 0;
+							}
+						}
+					}
+					
+					if(
+						!isset($question_array[$key + 1]) &&
+						($row['cgram'] == 'VER') && (strpos($row['infover'], 'par:pre;') !== false)
+					){						
+						/* Exclude this match from database for the current word */
+						$trigger = 0;
+					}
+					
+					if(
+						isset($question_array[$key + 1]) &&
+						($row['cgram'] == 'VER:past') &&
+						isset($data[md5($question_array[$key + 1])])
+					){
+						foreach($data[md5($question_array[$key + 1])] as $row2) {
+							if($row2['cgram'] == 'PRO:int'){
+								/* Exclude this match from database for the current word */
+								$trigger = 0;
+							}
+						}
+					}
+					
+					if(
+						isset($question_array[$key - 1]) &&
+						($row['cgram'] == 'VER' || $row['cgram'] == 'VER:past' || $row['cgram'] == 'VER:inf') &&
+						isset($data[md5($question_array[$key - 1])])
+					){
+						foreach($data[md5($question_array[$key - 1])] as $row2) {
+							if($row2['cgram'] == 'ADJ:int'){
+								/* Exclude this match from database for the current word */
+								$trigger = 0;
+							}
+						}
 					}
 					
 					/* If last word is a one character association letter and current word is a verb */
@@ -468,8 +584,24 @@
 			}
 			/* If a word is found query Wikipedia for a description to be used if the appropriate pronouns are found in human sentence */
 			if(!empty($name)){
-				$data = file_get_contents('https://'.$wiki_lang.'wikipedia.org/w/api.php?action=opensearch&search='.$name.'&limit=1&format=json');
-				$data = json_decode($data, true);
+				/* Query wikipedia for the word description */
+				$endPoint = "https://".$wiki_lang.".wikipedia.org/w/api.php";
+				$params = [
+					"action" => "opensearch",
+					"search" => $name,
+					"limit" => "1",
+					"namespace" => "0",
+					"format" => "json"
+				];
+
+				$wiki_url = $endPoint . "?" . http_build_query($params);
+
+				$ch = curl_init($wiki_url);
+				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+				$output_wiki = curl_exec($ch);
+				curl_close($ch);
+				$data = json_decode($output_wiki, true);
+				
 				$description = array();
 				if(isset($data[2][0]) && !empty($data[2][0]) && substr($data[2][0], -1) == '.') { 
 					$description[] = html_entity_decode($data[2][0], ENT_QUOTES); 
@@ -726,9 +858,12 @@
 				}
 				
 				$query = 'WHERE (('.implode(') OR (', $first_query).')'.$query_links.') AND (pattern LIKE \'%{%\' AND pattern LIKE \'%}%\') AND ip = "'.$ip_user.'" AND (LENGTH(human) > '.$before_length.' AND LENGTH(human) < '.$after_length.')'.$query_used;
+				$query = $query.' AND (human != "'.$reason.'")';
 			} else {
 				$query = 'WHERE (id = 0) AND ip = "'.$ip_user.'"';
+				$query = $query.' AND (human != "'.$reason.'")';
 			}
+			
 			/* Querying the database for a match */
 			$memory_query = mysqli_query($connexion, "SELECT * FROM ai_memory_".$type_bot." ".$query." ORDER BY id DESC LIMIT 1") or die (mysqli_error($connexion));
 			$data = mysqli_fetch_assoc($memory_query);
@@ -865,7 +1000,22 @@
 		}
 		
 		$result_array = ['temp memory '.use_session('count_response_'.$type_bot), 'analyse' => array('data' => $data, 'words_found' => $build_memory, 'links' => use_session('links_'.$type_bot), 'counter' => use_session('count_response_'.$type_bot), 'used_id' => implode(', ', use_session('used_id_'.$type_bot)), 'action' => $action[$rand], 'question_array' => $question_array, 'words_kept' => $words_kept, 'already_said' => $already_said, 'new_sentence' => $new_sentence)];
-				
+		
+		$response2 = array();			
+		foreach($path_array as $key2 => $value2){
+			if(isset($path_array[$key2]['person'])){
+				if($path_array[$key2]['cgram'] == 'VER') {
+					$response2['ver'][] = $path_array[$key2]['person'];
+				}
+				if($path_array[$key2]['cgram'] == 'AUX') {
+					$response2['aux'][] = $path_array[$key2]['person'];
+				}
+				if($path_array[$key2]['cgram'] == 'PRO:per') {
+					$response2['pro_per'][] = $path_array[$key2]['person'];
+				}
+			}
+		}
+		
 		if(!isset($pattern) && empty($response_equation)){
 			/* The syntax pattern in case no pattern is found. They are used to reorder sentences in new sentences */
 			
@@ -925,12 +1075,12 @@
 					$modele[] = 'pro_per,pro_per_con+,aux*2,ver_past**3,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,adj**2,dot';
 				}
 				$modele[] = 'pro_per,pro_per_con+,ver**2,art_def|adj_num|adj_pos,other,adj+,art_def,art_def+,nom|other**2,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,ver**2,adv+,art_ind,nom**1,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,ver**2,adv+,art_def,art_def+,nom**2,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,ver**2,adv+,art_ind,nom**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,ver**2,adv+,art_def,art_def+,nom**2,dot';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,ver|aux*2,adv+,adj+**3,art_def,art_def+,nom**2,dot';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,ver|aux*2,adv+,adj+**3,art_ind,nom**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver**2,adv+,art_ind,nom**1,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver**2,adv+,art_def,art_def+,nom**2,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver**2,adv+,art_ind,nom**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver**2,adv+,art_def,art_def+,nom**2,dot';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver|aux*2,adv+,adj+**3,art_def,art_def+,nom**2,dot';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver|aux*2,adv+,adj+**3,art_ind,nom**1,dot';
 			}
 			
 			
@@ -991,14 +1141,17 @@
 				$modele[] = 'ono,dot';
 			}
 			
-			
+			$array_syntax = use_session('stored_syntax');
 			$sentence_order = array();
+			
 			//This foreach test if the modele match the number of response type values or if response has any value for the modele value
 			foreach($modele as $modele_key => $modele_value){
 				$kept_ones = array();
 				$recreate = array();
+				$recreate_without_plus = array();
 				$tags_new = explode(',', $modele_value);
-				$not = 0;				
+				$not = 0;
+				
 				foreach($tags_new as $key => $tag){
 					if($tag != 'question' && $tag != 'dot'){
 						$tag_split2 = explode('*', $tag);
@@ -1040,9 +1193,12 @@
 							} else {
 								$recreate[] = $tag_split_build[0];
 							}
+							
+							$recreate_without_plus[] = str_replace('+', '', $tag_split_build[0]);
 						} else {
 							/* If the tag is not a multiple choice and is a single word */
 							/* If the tag don't contain an optional filter */
+							
 							if(strpos($tag_split2[0], '+') === false){
 								if(!empty($response[$tag_split2[0]])){
 									if(!isset($kept_ones[$tag_split2[0]])) { 
@@ -1066,6 +1222,7 @@
 										} else {
 											$recreate[] = $tag_split[0];
 										}
+										$recreate_without_plus[] = str_replace('+', '', $tag_split[0]);
 									}
 								} else {
 									/* If the type is not found in the response array simply break and set variable to skip this modele */
@@ -1083,52 +1240,127 @@
 								} else {
 									$recreate[] = $tag_split2[0];
 								}
+								$recreate_without_plus[] = str_replace('+', '', $tag_split2[0]);
 							}
 						}
 					}
 				}
+				
 				/* Is validation is still good while creating the new simple modele array */
-				if($not ==  0){					
-					$kept_ones2 = array();
-					$toggle = 0;
-					$bad_connection = 0;
-					
-					/*
-						-> Example of recreate array
-						$modele[] = 'pro_per,aux*1,adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**3,dot';
-						$recreate = array(
-							'pro_per',
-							'aux*1',
-							'adv+',
-							'art_def', <- chosen word
-							'nom**1', <- chosen word
-							'adj+**3',
-							'dot'
-						);
-					*/
-					
-					foreach($recreate as $key7 => $value7){
-						$tag_split6 = str_replace('+', '', $value7);
-						$tag_split2 = explode('*', $tag_split6);
-						if(!isset($kept_ones2[$tag_split2[0]])) { 
-							$kept_ones2[$tag_split2[0]] = 0; 
-						} else {
-							$kept_ones2[$tag_split2[0]]++;
-							if(!isset($response_temp[$tag_split2[0]][$kept_ones2[$tag_split2[0]]]) && strpos($value7, '+') !== false){
-								$kept_ones2[$tag_split2[0]]--;
+				if($not ==  0){
+					$not2 = 0;
+					foreach($recreate_without_plus as $key => $value){
+						$array_count = array_count_values($recreate_without_plus);
+						$array_count_pro_per = (isset($array_count['pro_per']) ? (intval($array_count['pro_per']) - 1) : 0);
+						$tag_split_without_plus = $value;
+						
+						if($tag_split_without_plus == 'pro_per_con' &&
+						isset($response['pro_per']) && isset($response['pro_per'][$array_count_pro_per]) && isset($response[$tag_split_without_plus]) && isset($response[$tag_split_without_plus][$array_count_pro_per]) && 
+						(($response['pro_per'][$array_count_pro_per] == 'tu' && $response[$tag_split_without_plus][$array_count_pro_per] == 's') ||
+						(($response['pro_per'][$array_count_pro_per] == 'j' || $response['pro_per'][$array_count_pro_per] == 'je') && $response[$tag_split_without_plus][$array_count_pro_per] == 's'))){
+							$not2 = 1;
+						}
+						
+						if(isset($response[$recreate_without_plus[$key]])){
+							foreach($response[$recreate_without_plus[$key]] as $key1 => $value1){
+								if(isset($response[$recreate_without_plus[$key]]) && isset($recreate_without_plus[$key - 1]) && isset($response[$recreate_without_plus[$key - 1]]) && 
+								isset($response[$recreate_without_plus[$key - 1]][$key1]) &&
+								strlen($response[$recreate_without_plus[$key - 1]][$key1]) == 1 && !in_array(substr($response[$recreate_without_plus[$key]][$key1], 0, 1), array('a', 'e', 'i', 'o', 'u', 'y'))){
+									$not2 = 1;
+								}
 							}
 						}
-						/* Verify granting for each word of the new simple modele array */
-						$bad_connection = verify_grammar($tag_split6, $kept_ones2, $key7, $tag_split2[0], end($tag_split2), $recreate, $response_temp);
 						
-						if($bad_connection == 1) {
-							$toggle = 1;
+						if($tag_split_without_plus == 'ver' || $tag_split_without_plus == 'aux'){
+							if(!isset($response2[$tag_split_without_plus]) || !isset($response2[$tag_split_without_plus][$array_count_pro_per]) || !isset($response2['pro_per']) || !isset($response2['pro_per'][$array_count_pro_per]) || $response2[$tag_split_without_plus][$array_count_pro_per] != $response2['pro_per'][$array_count_pro_per]) {
+								$not2 = 1;
+							}
 						}
 					}
-					/* If validation has passed with all the granting and response array testing, choose this pattern */
-					if($toggle == 0){
-						$sentence_order = $tags_new;
-						break;
+					
+					if($not2 == 0){
+						$kept_ones2 = array();
+						$toggle = 0;
+						$bad_connection = 0;
+						
+						/*
+							-> Example of recreate array
+							$modele[] = 'pro_per,aux*1,adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**3,dot';
+							$recreate = array(
+								'pro_per',
+								'aux*1',
+								'adv+',
+								'art_def', <- chosen word
+								'nom**1', <- chosen word
+								'adj+**3',
+								'dot'
+							);
+						*/
+						
+						foreach($recreate as $key7 => $value7){
+							$tag_split6 = str_replace('+', '', $value7);
+							$tag_split2 = explode('*', $tag_split6);
+							if(!isset($kept_ones2[$tag_split2[0]])) { 
+								$kept_ones2[$tag_split2[0]] = 0; 
+							} else {
+								$kept_ones2[$tag_split2[0]]++;
+								if(!isset($response_temp[$tag_split2[0]][$kept_ones2[$tag_split2[0]]]) && strpos($value7, '+') !== false){
+									$kept_ones2[$tag_split2[0]]--;
+								}
+							}
+							/* Verify granting for each word of the new simple modele array */
+							$bad_connection = verify_grammar($tag_split6, $kept_ones2, $key7, $tag_split2[0], end($tag_split2), $recreate, $response_temp);
+							
+							if($bad_connection == 1) {
+								$toggle = 1;
+							}
+						}
+						/* If validation has passed with all the granting and response array testing, choose this pattern */
+						
+						$detect = 0;
+						if(!empty($array_syntax)){
+							foreach($array_syntax as $key4 => $value4){
+								foreach($response as $key2 => $value2){
+									if(($key2 == 'ver' || $key2 == 'nom' || $key2 == 'aux' || $key2 == 'ver_past' || $key2 == 'ver_inf') &&
+									$array_syntax[$key4]['syntax'] == $modele_value){
+										if(!empty($value2) && is_array($value2)){
+											foreach($value2 as $key8 => $value8){
+												if(isset($array_syntax[$key4]['human'][$key2]) && is_array($array_syntax[$key4]['human'][$key2])){
+													if(!empty($array_syntax[$key4]['human'][$key2]) && in_array($value8, $array_syntax[$key4]['human'][$key2])){
+														$detect++;
+													}
+												}
+												if(isset($array_syntax[$key4]['human'][$key2]) && !is_array($array_syntax[$key4]['human'][$key2])){
+													if(!empty($array_syntax[$key4]['human'][$key2]) && $value8 == $array_syntax[$key4]['human'][$key2]){
+														$detect++;
+													}
+												}
+											}
+										}
+										
+										if(!empty($value2) && !is_array($value2)){
+											if(isset($array_syntax[$key4]['human'][$key2]) && is_array($array_syntax[$key4]['human'][$key2])){
+												if(!empty($array_syntax[$key4]['human'][$key2]) && in_array($value2, $array_syntax[$key4]['human'][$key2])){
+													$detect++;
+												}
+											}
+											if(isset($array_syntax[$key4]['human'][$key2]) && !is_array($array_syntax[$key4]['human'][$key2])){
+												if(!empty($array_syntax[$key4]['human'][$key2]) && $value2 == $array_syntax[$key4]['human'][$key2]){
+													$detect++;
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+						
+						if($toggle == 0 && $detect < 1){
+							$sentence_order = $tags_new;
+							$array_syntax[] = array('syntax' => $modele_value, 'human' => $response);
+							write_session('stored_syntax', $array_syntax);
+							break;
+						}
 					}
 				}
 			}
@@ -1515,6 +1747,7 @@
 				$pattern = str_replace('\' ','\'', implode(' ', $pattern));
 				/* Translate back the sentence to the human language is Google translate is enabled */
 				if(use_session('language') && use_session('language') != 'fr' && $google_translate == 1) {
+					
 					$post_values = [
 						'translate' => $pattern,
 						'language' => use_session('language')
@@ -1574,7 +1807,11 @@
 		}
 	}
 	
-	echo json_encode($result_array);
+	if($_POST['nojson'] == 1){
+	
+	} else {
+		echo json_encode($result_array);
+	}
 	/* Each 10 response from bot the short term memory is flushed and the counter is resetted */
 	if(use_session('count_response_'.$type_bot) > 40){
 		write_session('count_response_'.$type_bot, 0);
