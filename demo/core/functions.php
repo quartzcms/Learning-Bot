@@ -406,6 +406,11 @@
 							}
 						}
 					}
+					
+					if($person == '3'){
+						$person = '3s';
+					}
+					
 					if(!empty($after_verb)){
 						if($new_question[$id_pronouns]['cgram'] == 'PRO:dem') {
 							$pro_per = '';
@@ -451,13 +456,19 @@
 
 									if(isset($path_array[$key - 1]['ortho']) && strlen($path_array[$key - 1]['ortho']) == 1){
 										$pro_per = 'je';
-									}									
+									}
 								}
 							}
 						}
+						
+						if(!empty($person)){
+							$path_array[$key]['person'] = $person;
+						}
+						
 						if(!empty($pro_per)){
 							if(!empty($after_verb)){
 								$path_array[$id_pronouns]['new'] = $pro_per;
+								$path_array[$id_pronouns]['person'] = $person;
 								$path_array[$id_pronouns]['existing'] = 1;
 							} else {
 								$path_array[$key]['insert_before'] = 1;
@@ -466,6 +477,7 @@
 								$inserted['cgram'] = 'PRO:per';
 								$inserted['nombre'] = $pro_nombre;
 								$inserted['genre'] = $pro_genre;
+								$inserted['person'] = $person;
 								$inserted['added'] = '1';
 								$insert_before[] = array($inserted);
 							}
@@ -554,8 +566,10 @@
 					}
 					
 					if($path_array2[$key]['nombre'] == 'p'){
+						$person_noun = 'p';
 						$pro .= 's';	
 					} else {
+						$person_noun = 's';
 						$pro .= '';
 					}
 					
@@ -563,12 +577,14 @@
 						'ortho' => $pro, 
 						'cgram' => 'PRO:per',
 						'genre' => $path_array2[$key]['genre'],
-						'nombre' => $path_array2[$key]['nombre']
+						'nombre' => $path_array2[$key]['nombre'],
+						'person' => '3'.$person_noun
 					), array(
 						'ortho' => 'est', 
 						'cgram' => 'AUX',
 						'genre' => 'm',
-						'nombre' => 's'
+						'nombre' => 's',
+						'person' => '3s'
 					));
 					
 					break;
