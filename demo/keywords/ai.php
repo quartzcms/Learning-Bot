@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 	ini_set('display_errors', 1);
 	include('../../config.php');
 	include('../sessions/save_sessions.php');
@@ -367,6 +367,16 @@
 					}
 					
 					if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) && (
+							in_array('PRE', $words_kept_array[$question_array[$key - 1]])
+						) && ($row['cgram'] == 'VER')
+					){
+						/* Exclude this match from database for the current word */
+						$trigger = 0;
+					}
+					
+					if(
 						isset($question_array[$key + 1]) &&
 						($row['cgram'] == 'VER') && (strpos($row['infover'], 'par:pre;') !== false) &&
 						isset($data[md5($question_array[$key + 1])])
@@ -411,17 +421,6 @@
 								$trigger = 0;
 							}
 						}
-					}
-					
-					/* If last word is a one character association letter and current word is a verb */
-					if(
-						isset($question_array[$key - 1]) &&
-						isset($words_kept_array[$question_array[$key - 1]]) && (
-							in_array('PRE', $words_kept_array[$question_array[$key - 1]])
-						) && strlen($question_array[$key - 1]) == 1 && ($row['cgram'] == 'VER')
-					){
-						/* Exclude this match from database for the current word */
-						$trigger = 0;
 					}
 					
 					/* If last word is a verb or an infinitive verb or a past participle and current word is an auxiliary */
@@ -1031,6 +1030,12 @@
 			$modele[] = 'ver_inf,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,pro_per_con+,pro_per**2,art_def,art_def+,nom**2,question';
 			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux**3,adv+,art_ind,nom**1,adj**1,question';
 			$modele[] = 'pro_per,pro_per_con+,ver,adv+,ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
+			
+			$modele[] = 'other,ver_inf,art_def|adj_num|adj_pos,nom|other**1,adj+**1,art_def,nom**1,adj+**1,question';
+			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,art_def,art_def+,nom**2,question';
+			$modele[] = 'ver_inf,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,art_def,art_def+,nom**2,question';
+			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,art_ind,nom**1,adj**1,question';
+			$modele[] = 'adv+,ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
 			/* END OF INFINITIF VERBS */
 			
 			/* PAST PARTICIPLE */
@@ -1051,6 +1056,21 @@
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,ver_past**5,dot';
 				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,pro_per_con+,aux*5,adv+,ver_past**7,dot';
 			}
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**2,art_def,art_def+,nom**2,adj+**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**2,art_ind,nom**1,adj+**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**2,art_def,art_def+,nom**2,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**5,art_def,art_def+,nom**2,adj+**1,dot';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**2,question';
+			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,adv+,ver_past**2,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**5,art_ind,nom**1,adj+**1,dot';
+			$modele[] = 'adv+,ver_past**2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**5,art_def,art_def+,nom**2,dot';
+			$modele[] = 'art_def,art_def+,nom|other**2,adj+**1,other,adv+,ver_past**2,question';
+			$modele[] = 'adv+,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,question';
+			$modele[] = 'adv+,ver_past**2,art_def,art_def+,nom|other**2,adj**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**5,dot';
+			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,adv+,ver_past**7,dot';
+			
 			/* END OF PAST PARTICIPLE */
 			
 			if ($action[$rand] == 'rep') {
@@ -1265,7 +1285,7 @@
 							foreach($response[$recreate_without_plus[$key]] as $key1 => $value1){
 								if(isset($response[$recreate_without_plus[$key]]) && isset($recreate_without_plus[$key - 1]) && isset($response[$recreate_without_plus[$key - 1]]) && 
 								isset($response[$recreate_without_plus[$key - 1]][$key1]) &&
-								strlen($response[$recreate_without_plus[$key - 1]][$key1]) == 1 && !in_array(substr($response[$recreate_without_plus[$key]][$key1], 0, 1), array('a', 'e', 'i', 'o', 'u', 'y'))){
+								strlen($response[$recreate_without_plus[$key - 1]][$key1]) == 1 && !in_array(substr(format_word($response[$recreate_without_plus[$key]][$key1]), 0, 1), array('a', 'e', 'i', 'o', 'u', 'y'))){
 									$not2 = 1;
 								}
 							}
