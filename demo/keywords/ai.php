@@ -294,7 +294,7 @@
 		/* For each question word */
 		foreach($question_array as $key => $value) {
 			/* Query in the dictionnary */			
-			$lexique_query = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes(mb_strtolower($value, 'UTF-8')) . "' ORDER BY FIND_IN_SET(cgram, 'PRO:int,CON,LIA,ART,ART:def,ART:ind,PRE,PRO:pos,PRO:per,PRO:per:con,PRO:ind,PRO:rel,PRO:dem,AUX,VER,VER:inf,VER:past,ADJ,ADJ:ind,ADJ:int,ADJ:num,ADJ:pos,ADV,ONO,NOM')") or die (mysqli_error($connexion));
+			$lexique_query = mysqli_query($connexion, "SELECT * FROM lexique WHERE ortho = '" . addslashes(mb_strtolower($value, 'UTF-8')) . "' ORDER BY FIND_IN_SET(cgram, 'PRO:int,CON,LIA,ART,ART:def,ART:ind,PRE,PRO:pos,PRO:per,PRO:per:con,ADV,PRO:ind,PRO:rel,PRO:dem,AUX,VER,VER:inf,VER:past,ADJ,ADJ:ind,ADJ:int,ADJ:num,ADJ:pos,ONO,NOM')") or die (mysqli_error($connexion));
 			/* If results are found create a new array with index key the question word and all the word possibilities from database */
 			if(mysqli_num_rows($lexique_query) > 0){
 				while ($row = mysqli_fetch_assoc($lexique_query)) { 
@@ -302,6 +302,48 @@
 				}
 			}
 		}
+		
+		foreach($question_array as $key => $value) {
+			if(!isset($data[md5($value)])){
+				/* Query in the dictionnary */			
+				$lexique_query = mysqli_query($connexion, "SELECT id, ortho, lemme, cgram, genre, nombre, infover, LENGTH(ortho) FROM lexique WHERE ortho LIKE '%" . addslashes(mb_strtolower($value, 'UTF-8')) . "%' ORDER BY LENGTH(ortho) ASC LIMIT 1") or die (mysqli_error($connexion));
+				/* If results are found create a new array with index key the question word and all the word possibilities from database */
+				if(mysqli_num_rows($lexique_query) > 0){
+					while ($row = mysqli_fetch_assoc($lexique_query)) { 
+						$data[md5($value)][] = $row; 
+					}
+				}
+			}
+		}
+		
+		$array_of_syntax = array(
+			'PRO:int' => array('before' => array('ART:def', 'PRO:pos', 'PRO:per', 'PRO:per:con', 'PRO:rel', 'AUX', 'VER', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO'), 'after' => array('')),
+			'CON' => array('before' => array('CON'), 'after' => array('CON', 'PRO:rel', 'AUX', 'VER', 'ADV', 'ONO')),
+			'LIA' => array('before' => array(''), 'after' => array('')),
+			'ART:def' => array('before' => array('PRO:pos', 'PRO:per', 'PRO:per:con'), 'after' => array('PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO')),
+			'ART:ind' => array('before' => array('ART:ind'), 'after' => array('ART:ind', 'PRO:pos', 'PRO:per', 'PRO:per:con', 'AUX', 'VER', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV')),
+			'PRE' => array('before' => array('PRE'), 'after' => array('PRE', 'PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO')),
+			'PRO:pos' => array('before' => array('PRO:pos'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per', 'PRO:per:con', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV')),
+			'PRO:per' => array('before' => array('PRO'), 'after' => array('ART:def', 'PRO:pos', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'PRO:per:con' => array('before' => array('PRO:per:con'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per:con', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO')),
+			'PRO:ind' => array('before' => array('PRO:ind'), 'after' => array('PRO:pos', 'PRO:ind', 'PRO:per', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV')),
+			'PRO:rel' => array('before' => array('PRO:rel'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per:con', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos')),
+			'PRO:dem' => array('before' => array(''), 'after' => array('PRO:pos', 'PRO:per', 'PRO:per:con', 'AUX', 'VER', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'AUX' => array('before' => array('NONE'), 'after' => array('PRO:rel', 'VER', 'VER:inf', 'ADJ', 'ADJ:int', 'ONO')),
+			'VER' => array('empty_after_exception_before' => array('PRO:per:con', 'PRO:per', 'PRO:dem'), 'before' => array('VER', 'AUX', 'ADJ:pos', 'PRO:pos', 'VER:past', 'ART:def', 'ART:ind', 'ADJ:ind', 'ADJ:dem'), 'after' => array('PRO:rel', 'PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'VER:inf' => array('before' => array('PRO:ind', 'AUX', 'PRO:dem'), 'after' => array('AUX', 'PRO:per:con', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'VER:past' => array('before' => array('VER:past', 'ART:def', 'ART:ind', 'PRE', 'PRO:per', 'PRO:pos', 'PRO:ind', 'PRO:dem', 'VER', 'NOM'), 'after' => array('PRO:per', 'PRO:per:con', 'PRO:rel', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'ADJ' => array('before' => array('ART:ind', 'ART:def', 'ADJ:dem'), 'after' => array('NONE')),
+			'ADJ:ind' => array('before' => array(''), 'after' => array('')),
+			'ADJ:int' => array('before' => array(''), 'after' => array('')),
+			'ADJ:num' => array('before' => array(''), 'after' => array('')),
+			'ADJ:pos' => array('before' => array('ADJ:pos'), 'after' => array('ADJ:pos')),
+			'ADJ:dem' => array('before' => array('NONE'), 'after' => array('VER')),
+			'ADV' => array('before' => array('ART:ind', 'ART:def'), 'after' => array('CON')),
+			'ONO' => array('before' => array('ONO'), 'after' => array('ONO')),
+			'NOM' => array('not_one_letter' => array(), 'before' => array('VER', 'AUX'), 'after' => array('VER:inf'))
+		);
+		
 		/* Looping through all the question words again */
 		foreach($question_array as $key => $value) {
 			$types = array();
@@ -310,7 +352,7 @@
 					$trigger = 1;
 					
 					/* If last word is a determinant, pronouns, of possesive adjective and the current word is a verb or auxiliary */
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) &&
 						(
@@ -321,11 +363,67 @@
 							in_array('PRO:pos', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:past' || $row['cgram'] == 'AUX')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word 
 						$trigger = 0;
+					}*/
+					
+					if(isset($array_of_syntax[$row['cgram']]) && isset($array_of_syntax[$row['cgram']]['before']) && isset($array_of_syntax[$row['cgram']]['after']) &&
+					!empty($array_of_syntax[$row['cgram']]['before']) && !empty($array_of_syntax[$row['cgram']]['after'])){
+						if(isset($question_array[$key + 1]) && isset($data[md5($question_array[$key + 1])])){
+							$detect_trigger = 0;
+							foreach($data[md5($question_array[$key + 1])] as $row2) {
+								if(in_array($row2['cgram'], $array_of_syntax[$row['cgram']]['after'])){
+									$detect_trigger = 0;
+								}
+								if(!in_array($row2['cgram'], $array_of_syntax[$row['cgram']]['after'])){
+									$detect_trigger = 1;
+									break;
+								}
+							}
+							
+							if($detect_trigger == 0){
+								$trigger = 0;
+							}
+						}
+						
+						if((!isset($question_array[$key + 1]) || (isset($question_array[$key + 1]) && !isset($question_array[$key + 2]) && strlen($question_array[$key + 1]) == 1)) && isset($array_of_syntax[$row['cgram']]['empty_after_exception_before'])){
+							if(isset($question_array[$key - 1]) && isset($words_kept_array[$question_array[$key - 1]]) && !empty($array_of_syntax[$row['cgram']]['empty_after_exception_before'])){
+								$detect_value = 0;
+								foreach($array_of_syntax[$row['cgram']]['empty_after_exception_before'] as $row3 => $value3){
+									if(in_array($value3, $words_kept_array[$question_array[$key - 1]])){
+										$detect_value = 1;
+									}
+								}
+								if($detect_value == 0){
+									$trigger = 0;
+								}
+							} else {
+								$trigger = 0;
+							}
+						}
+						
+						if(isset($array_of_syntax[$row['cgram']]['not_one_letter'])){
+							if(strlen($row['ortho']) == 1){
+								$trigger = 0;
+							}
+						}
+						
+						if(isset($question_array[$key - 1]) && isset($words_kept_array[$question_array[$key - 1]])){
+							foreach($array_of_syntax as $row2 => $value2) {
+								if($row['cgram'] == $row2){
+									if(isset($value2['before'])){
+										foreach($value2['before'] as $row3 => $value3){
+											if(in_array($value3, $words_kept_array[$question_array[$key - 1]])){
+												$trigger = 0;
+											}
+										}
+									}
+								}
+							}
+						}
 					}
 					
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						$question_array[$key - 1] != 'ne' && 
 						isset($words_kept_array[$question_array[$key - 1]]) &&
@@ -333,27 +431,27 @@
 						in_array('ADV', $words_kept_array[$question_array[$key - 1]]) &&
 						($row['cgram'] == 'VER' || $row['cgram'] == 'VER:past')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word 
 						
 						foreach($data[md5($value)] as $row1) {
 							if($row1['cgram'] == 'ADV'){
 								$trigger = 0;
 							}
 						}
-					}
+					}*/
 					
-					/* If last word is a determinant and current word is a infinitive verb */
-					if(
+					// If last word is a determinant and current word is a infinitive verb 
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'VER:inf')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word 
 						$trigger = 0;
-					}
+					}*/
 					
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
@@ -364,9 +462,9 @@
 								$trigger = 0;
 							}
 						}
-					}
+					}*/
 					
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('PRO:ind', $words_kept_array[$question_array[$key - 1]])
@@ -375,19 +473,29 @@
 							in_array('VER:inf', $words_kept_array[$question_array[$key - 2]])
 						) && ($row['cgram'] == 'VER')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word
 						$trigger = 0;
-					}
+					}*/
 					
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('PRE', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'VER')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word 
 						$trigger = 0;
-					}
+					}*/
+					
+					/*if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) && (
+							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
+						) && ($row['cgram'] != 'ADJ' || $row['cgram'] != 'NOM')
+					){
+						// Exclude this match from database for the current word 
+						$trigger = 0;
+					}*/
 					
 					if(
 						isset($question_array[$key + 1]) &&
@@ -402,39 +510,63 @@
 						}
 					}
 					
+					/*if(
+						isset($question_array[$key + 1]) &&
+						($row['cgram'] == 'NOM') &&
+						isset($data[md5($question_array[$key + 1])])
+					){
+						$detect_for_trigger = 0;
+						
+						foreach($data[md5($question_array[$key + 1])] as $row2) {
+							if($row2['cgram'] == 'NOM'){
+								// Exclude this match from database for the current word 
+								$detect_for_trigger = 0;
+							}
+							if($row2['cgram'] == 'ADJ'){
+								// Exclude this match from database for the current word 
+								$detect_for_trigger = 1;
+								break;
+							}
+						}
+						
+						if($detect_for_trigger == 0){
+							$trigger = 0;
+						}
+					}*/
+					
 					if(
 						!isset($question_array[$key + 1]) &&
 						($row['cgram'] == 'VER') && (strpos($row['infover'], 'par:pre;') !== false)
 					){						
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word 
 						$trigger = 0;
 					}
 					
-					if(
+					/*if(
 						isset($question_array[$key + 1]) &&
 						($row['cgram'] == 'VER:past') &&
 						isset($data[md5($question_array[$key + 1])])
 					){
 						foreach($data[md5($question_array[$key + 1])] as $row2) {
 							if($row2['cgram'] == 'PRO:int'){
-								/* Exclude this match from database for the current word */
+								// Exclude this match from database for the current word
 								$trigger = 0;
 							}
 						}
-					}
+					}*/
 					
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						($row['cgram'] == 'VER' || $row['cgram'] == 'VER:past' || $row['cgram'] == 'VER:inf') &&
 						isset($data[md5($question_array[$key - 1])])
 					){
 						foreach($data[md5($question_array[$key - 1])] as $row2) {
 							if($row2['cgram'] == 'ADJ:int'){
-								/* Exclude this match from database for the current word */
+								// Exclude this match from database for the current word 
 								$trigger = 0;
 							}
 						}
-					}
+					}*/
 					
 					/* If last word is a verb or an infinitive verb or a past participle and current word is an auxiliary */
 					if(
@@ -444,23 +576,27 @@
 							in_array('VER', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('VER:inf', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('VER:past', $words_kept_array[$question_array[$key - 1]])
+						) && (
+						(isset($question_array[$key - 3]) && isset($words_kept_array[$question_array[$key - 3]]) &&
+						!in_array('PRO:int', $words_kept_array[$question_array[$key - 3]])) || 
+						(!isset($question_array[$key - 3]))
 						) && ($row['cgram'] == 'AUX') &&
 						(strpos($row['infover'], 'inf;') === false)
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word
 						$trigger = 0;
 					}
 					
 					/* If last word is an auxiliary and current word is a verb or infinitive verb */
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('AUX', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'VER' || $row['cgram'] == 'VER:inf')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word 
 						$trigger = 0;
-					}
+					}*/
 					
 					/* If there is two verbs side by side */
 					if(
@@ -469,57 +605,68 @@
 						in_array('VER', $words_kept_array[$question_array[$key - 1]]) &&
 						($row['cgram'] == 'VER') && (strpos($row['infover'], 'par:pre;') === false)
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word 
 						$trigger = 0;
 					}
 					/* If there is two past participle verbs side by side  */
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) &&
 						in_array('VER:past', $words_kept_array[$question_array[$key - 1]]) && 
 						($row['cgram'] == 'VER:past')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word 
 						$trigger = 0;
-					}
+					}*/
+					
+					/* If there is two past participle verbs side by side  */
+					/*if(
+						isset($question_array[$key - 1]) &&
+						isset($words_kept_array[$question_array[$key - 1]]) &&
+						in_array('VER:past', $words_kept_array[$question_array[$key - 1]]) && 
+						($row['cgram'] == 'VER')
+					){
+						// Exclude this match from database for the current word 
+						$trigger = 0;
+					}*/
 					
 					/* If last word is an infinitive verb and current word is a verb */
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) &&
 						in_array('VER:inf', $words_kept_array[$question_array[$key - 1]]) && 
 						($row['cgram'] == 'VER')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word
 						$trigger = 0;
-					}
+					}*/
 					
 					/* If last word is a determinant and current word is an introduction word */
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'ONO')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word
 						$trigger = 0;
-					}
+					}*/
 					
 					/* If last word is an adjective, determinant, pronouns or adverb and current word is an adjective */
-					if(
+					/*if(
 						isset($question_array[$key - 1]) &&
 						isset($words_kept_array[$question_array[$key - 1]]) && (
 							in_array('ADJ:dem', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ADJ:pos', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('ART:ind', $words_kept_array[$question_array[$key - 1]]) ||
 							in_array('PRO:pos', $words_kept_array[$question_array[$key - 1]]) ||
-							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])/* ||
-							in_array('ADV', $words_kept_array[$question_array[$key - 1]])*/
+							in_array('ART:def', $words_kept_array[$question_array[$key - 1]])/ ||
+							in_array('ADV', $words_kept_array[$question_array[$key - 1]])
 						) && ($row['cgram'] == 'ADJ')
 					){
-						/* Exclude this match from database for the current word */
+						// Exclude this match from database for the current word
 						$trigger = 0;
-					}
+					}*/
 					
 					/* If the word has passed all the validations and if is not already stored */
 					if($trigger == 1 && !in_array(format_word($row['ortho']), $types)){
@@ -927,6 +1074,8 @@
 					$group_tag2 = $recreate[$operator2];
 					$group_tag2 = preg_replace('/[0-9]+/', '', $group_tag2);
 					$group_tag2 = preg_replace('/[\*]+/', '', $group_tag2);
+					$group_tag2 = preg_replace('/[\+]+/', '', $group_tag2);
+					$group_tag2 = preg_replace('/[\-]+/', '', $group_tag2);
 					
 					if($group_tag2 != 'other'){
 						if(
@@ -950,43 +1099,74 @@
 				}
 			}
 			
-			if($tag != 'other' && strlen($end) == 1){
-				$operator = $key - $end;
-				if(isset($recreate[$operator])){
-					$group_tag = $recreate[$operator];
-					$group_tag = preg_replace('/[0-9]+/', '', $group_tag);
-					$group_tag = preg_replace('/[\*]+/', '', $group_tag);
-					
-					if($group_tag != 'other'){
-						if(
-							!empty($response_temp[$group_tag]) &&
-							!empty($response_temp[$tag]) &&
-							isset($kept_ones2[$group_tag]) &&
-							isset($kept_ones2[$tag]) &&
-							isset($response_temp[$group_tag][$kept_ones2[$group_tag]]['genre']) &&
-							isset($response_temp[$tag][$kept_ones2[$tag]]['genre']) &&
-							isset($response_temp[$group_tag][$kept_ones2[$group_tag]]['nombre']) &&
-							isset($response_temp[$tag][$kept_ones2[$tag]]['nombre'])
-						){
-							
-							/* More than 1 star in the syntax pattern means it will grant the kind */
-							if(substr_count($full_tag, '*') > 1){
-								/* If word kind is granting with the one targeted */
-								if($response_temp[$group_tag][$kept_ones2[$group_tag]]['genre'] != $response_temp[$tag][$kept_ones2[$tag]]['genre']){
-									return 1;
+			if(substr_count($full_tag, '*') > 0){
+				$end_array = explode('*', $full_tag);
+				if(isset($end_array[1])){			
+					$end_array = explode('-', end($end_array));
+					if(isset($end_array[0])){
+						if($tag != 'other' && strlen($end_array[0]) == 1){
+							$operator = $key - intval($end_array[0]);
+							if(isset($recreate[$operator])){
+								$group_tag = $recreate[$operator];
+								$group_tag = preg_replace('/[0-9]+/', '', $group_tag);
+								$group_tag = preg_replace('/[\*]+/', '', $group_tag);
+								$group_tag = preg_replace('/[\+]+/', '', $group_tag);
+								$group_tag = preg_replace('/[\-]+/', '', $group_tag);
+								
+								if($group_tag != 'other'){
+									if(
+										!empty($response_temp[$group_tag]) &&
+										!empty($response_temp[$tag]) &&
+										isset($kept_ones2[$group_tag]) &&
+										isset($kept_ones2[$tag]) &&
+										isset($response_temp[$group_tag][$kept_ones2[$group_tag]]['genre']) &&
+										isset($response_temp[$tag][$kept_ones2[$tag]]['genre']) &&
+										isset($response_temp[$group_tag][$kept_ones2[$group_tag]]['nombre']) &&
+										isset($response_temp[$tag][$kept_ones2[$tag]]['nombre'])
+									){
+										/* More than 1 star in the syntax pattern means it will grant the kind */
+										if(substr_count($full_tag, '*') > 1){
+											/* If word kind is granting with the one targeted */
+											if($response_temp[$group_tag][$kept_ones2[$group_tag]]['genre'] != $response_temp[$tag][$kept_ones2[$tag]]['genre']){
+												return 1;
+											}
+										}
+										/* If word number is granted with the one targeted */
+										if($response_temp[$group_tag][$kept_ones2[$group_tag]]['nombre'] != $response_temp[$tag][$kept_ones2[$tag]]['nombre']){
+											return 1;
+										}
+										
+									}
 								}
-							}
-							/* If word number is granted with the one targeted */
-							if($response_temp[$group_tag][$kept_ones2[$group_tag]]['nombre'] != $response_temp[$tag][$kept_ones2[$tag]]['nombre']){
+							} else {
 								return 1;
 							}
 						}
 					}
-				} else {
-					return 1;
 				}
 			}
 			
+			if(substr_count($full_tag, '-') > 0){
+				$end_array = explode('-', $full_tag);
+				if(isset($end_array[1])){
+					$end_aux = $end_array[1];
+					if($tag == 'aux'){
+						if(
+							!empty($response_temp[$tag]) &&
+							isset($kept_ones2[$tag]) &&
+							isset($response_temp[$tag][$kept_ones2[$tag]]['lemme'])
+						){
+							if($end_aux == '2' && format_word($response_temp[$tag][$kept_ones2[$tag]]['lemme']) != 'avoir'){
+								return 1;
+							}
+							
+							if($end_aux == '1' && format_word($response_temp[$tag][$kept_ones2[$tag]]['lemme']) != 'etre'){
+								return 1;
+							}
+						}
+					}
+				}
+			}
 			return 0;
 		}
 		
@@ -1038,103 +1218,90 @@
 			$modele = array();
 			
 			/* INFINITIF VERBS */
-			$modele[] = 'other,ver_inf,art_def|adj_num|adj_pos,nom|other**1,adj+**1,pro_per_con+,aux,pro_per*1,art_def,nom**1,adj+**1,question';
-			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,art_def,art_def+,nom**2,question';
-			$modele[] = 'ver_inf,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver,pro_per_con+,pro_per**2,art_def,art_def+,nom**2,question';
-			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux**3,adv+,art_ind,nom**1,adj**1,question';
-			$modele[] = 'pro_per,pro_per_con+,ver,adv+,ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
+			$modele[] = 'ver_inf,art_def|adj_num|adj_pos,nom|other**1,adj+**1,pro_int,art_def,nom**1,adj+**1,question';
+			$modele[] = 'ver_inf,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,adj+,art_def,art_def+,nom**1,question';
+			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,question';
+			$modele[] = 'pro_per,pro_per_con+,ver,adv+,lia,pro_int,art_def,art_def+,nom|other**1,adj+**1,question';
 			
-			$modele[] = 'other,ver_inf,art_def|adj_num|adj_pos,nom|other**1,adj+**1,art_def,nom**1,adj+**1,question';
-			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,art_def,art_def+,nom**2,question';
-			$modele[] = 'ver_inf,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,art_def,art_def+,nom**2,question';
-			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,art_ind,nom**1,adj**1,question';
+			$modele[] = 'ver_inf,art_def|adj_num|adj_pos,nom|other**1,adj+**1,art_def,nom**1,adj+**1,question';
+			$modele[] = 'ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,art_def,art_ind,nom**1,adj**1,question';
 			$modele[] = 'adv+,ver_inf,lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
 			/* END OF INFINITIF VERBS */
 			
 			/* PAST PARTICIPLE */
 			/* If no verb in the sentence */
 			if(empty($response['ver'])){
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_def,art_def+,nom**2,adj+**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_ind,nom**1,adj+**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_def,art_def+,nom**2,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,ver_past**5,art_def,art_def+,nom**2,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,pro_per*4,adv+,ver_past**2,question';
-				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,pro_per_con+,aux*4,pro_per*1,adv+,ver_past**2,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,ver_past**5,art_ind,nom**1,adj+**1,dot';
-				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,ver_past**5,art_def,art_def+,nom**2,dot';
-				$modele[] = 'art_def,art_def+,nom|other**2,adj+**1,other,pro_per_con+,aux*6,pro_per*1,adv+,ver_past**2,question';
-				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,question';
-				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_def,art_def+,nom|other**2,adj**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,ver_past**5,dot';
-				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,pro_per_con+,aux*5,adv+,ver_past**7,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_def,art_def+,nom**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_ind,nom**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**2,art_def,nom**1,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**1,question';
+				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,adv+,ver_past**1,art_ind,nom**1,adj+**1,dot';
+				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
+				$modele[] = 'art_def,art_def+,nom|other**1,adj+**1,pro_per_con+,aux*1-2,pro_per*1,adv+,ver_past**1,question';
+				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_def,art_def+,nom|other**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1-2,adv+,ver_past**2,dot';
+				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,pro_per_con+,aux*2-2,adv+,ver_past**3,dot';
 			}
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**2,art_def,art_def+,nom**2,adj+**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**2,art_ind,nom**1,adj+**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**2,art_def,art_def+,nom**2,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**5,art_def,art_def+,nom**2,adj+**1,dot';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**2,question';
-			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,adv+,ver_past**2,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**5,art_ind,nom**1,adj+**1,dot';
-			$modele[] = 'adv+,ver_past**2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**5,art_def,art_def+,nom**2,dot';
-			$modele[] = 'art_def,art_def+,nom|other**2,adj+**1,other,adv+,ver_past**2,question';
-			$modele[] = 'adv+,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,question';
-			$modele[] = 'adv+,ver_past**2,art_def,art_def+,nom|other**2,adj**1,question';
-			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**5,dot';
-			$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,other,adv+,ver_past**7,dot';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+,aux*1-2,ver_past**2,art_def,art_def+,nom**1,adj+**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,adj+,aux*1-2,ver_past**2,art_ind,nom**1,adj+**1,question';
+			$modele[] = 'adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+,aux*1-2,ver_past**2,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1-2,adv+,ver_past**2,art_def,art_def+,nom**1,dot';
+			$modele[] = 'art_def,art_def+,nom|other**1,adj+**1,ver_past**1,other,question';
+			$modele[] = 'adv+,ver_past,art_def,art_def+,nom|other**1,adj+**1,question';
+			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**1,dot';
+			$modele[] = 'other,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,adv+,ver_past**2,dot';
 			
 			/* END OF PAST PARTICIPLE */
 			
 			if ($action[$rand] == 'rep') {
-				$modele[] = 'art_def|adj_num|adj_pos,other,adj+**2,ver**3,pro_per_con+,pro_per**2,adv+,art_def,art_def+,nom|other**2,question';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,ver|aux*2,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*2,pro_per_con+,pro_per*2,adv+,art_def,art_def+,nom**2,question';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1,pro_per_con+,pro_per*2,adv+,art_ind,nom**1,adj**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,pro_per_con+,pro_per*2,ver_inf,art_def,art_def+,nom**2,question';
+				$modele[] = 'art_def|adj_num|adj_pos,other,adj+**2,ver,pro_per_con+,pro_per*1,adv+,art_def,art_def+,nom|other**1,question';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,ver|aux-2,pro_per_con+,pro_per*1,adv+,art_def,art_def+,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux-2,pro_per_con+,pro_per*1,adv+,art_def,art_def+,nom**1,question';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux-1,pro_per_con+,pro_per*1,adv+,art_ind,nom**1,adj**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver,pro_per_con+,pro_per*1,ver_inf,art_def,art_def+,nom**1,question';
 				/* If no verb in the sentence */
 				if(empty($response['ver'])){
-					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,pro_per*1,adv+,art_def,art_def+,nom**2,question';
-					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,pro_per*1,art_ind,nom**1,adj**1,question';
-					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,pro_per*1,art_def,art_def+,nom**2,adj**1,question';
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux-2,pro_per*1,adv+,art_def,art_def+,nom**1,question';
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux-1,pro_per*1,art_ind,nom**1,adj**1,question';
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux-1,pro_per*1,adj**3,question';
 				}
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**2,pro_per_con+,pro_per**2,adv+,art_ind,nom**1,adj,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,pro_per_con+,pro_per**2,adv+,art_def,art_def+,nom**2,adj+,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1,pro_per_con+,pro_per*2,adv+,art_ind,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver,pro_per_con+,pro_per*1,adv+,art_def|art_ind,art_def+,nom**1,adj+,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux-2,pro_per_con+,pro_per*1,adv+,art_ind,nom**1,question';
 			} elseif ($action[$rand] == 'sug') {
 				/* If no verb in the sentence */
 				if(empty($response['ver'])){
-					$modele[] = 'pro_per,pro_per_con+,aux*2,adv+,ver_past**4,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**2,art_def,art_def+,nom**2,dot';
-					$modele[] = 'pro_per,pro_per_con+,aux*2,ver_past**3,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,adj**2,dot';
+					$modele[] = 'pro_per,aux*1,adv+,ver_past**2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,art_def,art_def+,nom**1,dot';
+					$modele[] = 'pro_per,pro_per_con+,aux*1,ver_past**2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,dot';
 				}
-				$modele[] = 'pro_per,pro_per_con+,ver**2,art_def|adj_num|adj_pos,other,adj+,art_def,art_def+,nom|other**2,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver**2,adv+,art_ind,nom**1,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver**2,adv+,art_def,art_def+,nom**2,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver**2,adv+,art_ind,nom**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver**2,adv+,art_def,art_def+,nom**2,dot';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver|aux*2,adv+,adj+**3,art_def,art_def+,nom**2,dot';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver|aux*2,adv+,adj+**3,art_ind,nom**1,dot';
+				$modele[] = 'adv+,pro_per,ver**1,art_def|adj_num|adj_pos,other,adj+,art_def,art_def+,nom|other**1,dot';
+				$modele[] = 'adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,art_ind,nom**1,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver**1,art_def,art_def+,nom**1,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,adv+,art_ind,nom**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,adv+,art_def,art_def+,nom**1,dot';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver|aux*1-2,art_def,art_def+,nom**1,dot';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per,pro_per_con+,ver|aux*1-2,art_ind,nom**1,dot';
 			}
 			
 			
 			/* PAST PARTICIPLE */
 			/* If no verb in the sentence */
 			if(empty($response['ver'])){
-				$modele[] = 'pro_per,pro_per_con+,aux*2,ver_past**3,art_def,art_def+,nom|other**2,adj+**1,dot';
-				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**2,art_ind,nom|other**1,adj+**1,question';
-				$modele[] = 'art_def,art_def+,nom|other**2,pro_per_con+,aux*4,adv+,ver_past**5,dot';
-				$modele[] = 'pro_per,pro_per_con+,aux*2,ver_past**3,art_ind,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,aux*2,ver_past**3,dot';
-				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**2,question';
+				$modele[] = 'pro_per,pro_per_con+,aux*1,ver_past**2,art_def,art_def+,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_ind,nom|other**1,adj+**1,question';
+				$modele[] = 'art_def,art_def+,nom|other**1,pro_per_con+,aux*1-2,adv+,ver_past**2,dot';
+				$modele[] = 'pro_per,pro_per_con+,aux*1,ver_past**2,art_ind,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,aux*1-2,ver_past**2,dot';
+				$modele[] = 'pro_per_con+,aux,pro_per*1,ver_past**1,adv+,question';
 			}
 			/* END OF PAST PARTICIPLE */
 			
 			/* INFINITIF VERBS */
 			$modele[] = 'ver_inf,ver_inf+,art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-			$modele[] = 'adv+,ver_inf,ver_inf+,art_def|adj_num|adj_pos,nom|other**2,question';
+			$modele[] = 'adv+,ver_inf,ver_inf+,art_def|adj_num|adj_pos,nom|other**1,question';
 			$modele[] = 'adv,ver_inf,ver_inf+,art_def,nom|other**1,adj+**1,question';
-			$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,ver,adv+,lia,ver_inf,adj+,question';
-			$modele[] = 'ver_inf,art_def,art_def+,nom|other**2,question';
+			$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,ver,adv+,con,ver_inf,adj+,question';
+			$modele[] = 'ver_inf,art_def,art_def+,nom|other**1,question';
 			$modele[] = 'ver_inf,art_def,nom|other**1,question';
 			$modele[] = 'ver_inf,question';
 			/* END OF INFINITIF VERBS */
@@ -1142,34 +1309,34 @@
 			if ($action[$rand] == 'rep') {
 				/* If no verb in the sentence */
 				if(empty($response['ver'])){
-					$modele[] = 'pro_per_con+,aux,pro_per*1,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
-					$modele[] = 'pro_per,pro_per_con+,aux*2,adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
-					$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,aux*2,adv+,ver_past**4,question';
-					$modele[] = 'pro_per_con+,aux,pro_per*1,art_def,art_def+,nom|other**2,adj+**1,question';
+					$modele[] = 'pro_per_con+,aux-1,pro_per*1,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
+					$modele[] = 'pro_per,pro_per_con+,aux*1-1,adj_num|adj_pos|pro_ind,nom|other**1,adj+**1,question';
+					$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,aux*1-2,adv+,ver_past**2,question';
+					$modele[] = 'pro_per_con+,aux,pro_per*1,art_def,art_def+,nom|other**1,adj+**1,question';
 					$modele[] = 'pro_per_con+,aux,pro_per*1,art_ind,nom|other**1,adj+**1,question';
 				}
-				$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,ver|aux*2,adv+,question';
-				$modele[] = 'pro_int,ver|aux,pro_per_con+,pro_per*2,question';
+				$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,ver|aux*1,adv+,question';
+				$modele[] = 'pro_int,ver|aux,pro_per_con+,pro_per*1,question';
 				$modele[] = 'nom|other,question';
 				$modele[] = 'ono,question';
 			} elseif ($action[$rand] == 'sug') {
 				/* If no verb in the sentence */
 				if(empty($response['ver'])){
-					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,other,dot';
-					$modele[] = 'pro_per,pro_per_con+,aux*2,adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**2,dot';
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1-2,adv+,other,dot';
+					$modele[] = 'pro_per,pro_per_con+,aux*1-1,adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+**2,dot';
 				}
-				$modele[] = 'pro_per,pro_per_con+,ver|aux*2,art_def,art_def+,nom|other**2,adj+**1,dot';
-				$modele[] = 'ver,pro_per_con+,pro_per*2,lia,ver_inf,art_def,art_def+,nom|other**2,adj+**1,dot';
-				$modele[] = 'pro_per,pro_per_con+,ver|aux*2,art_ind,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per,pro_per_con+,ver|aux*2,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per,ver|aux*1-1,art_def,art_def+,nom|other**1,adj+**1,dot';
+				$modele[] = 'ver,pro_per_con+,pro_per*1,ver_inf,art_def,art_def+,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per,pro_per_con+,ver|aux*1-1,art_ind,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per,pro_per_con+,ver|aux*1-1,adv+,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,dot';
 				/* If no verb in the sentence */
 				if(empty($response['ver'])){
-					$modele[] = 'pro_per,pro_per_con+,aux*2,art_ind,nom|other**1,adj+**1,dot';
-					$modele[] = 'art_def,art_def+,nom|other**2,pro_per_con+,aux*4,adv+,adj+**3,dot';
-					$modele[] = 'adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*3,adv+,adj+**5,dot';
-					$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,aux*2,adv+,adj+,dot';
+					$modele[] = 'pro_per,pro_per_con+,aux*1-1,art_ind,nom|other**1,adj+**1,dot';
+					$modele[] = 'art_def,art_def+,nom|other**1,pro_per_con+,aux*1-1,adv+,adj+**2,dot';
+					$modele[] = 'adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1-1,adv+,adj+**2,dot';
+					$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,aux*1-1,adv+,adj+,dot';
 				}
-				$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,ver|aux*2,dot';
+				$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,ver|aux*1,dot';
 				$modele[] = 'nom|other,dot';
 				$modele[] = 'ono,dot';
 			}
@@ -1331,23 +1498,27 @@
 						*/
 						
 						foreach($recreate as $key7 => $value7){
-							$tag_split6 = str_replace('+', '', $value7);
-							$tag_split2 = explode('*', $tag_split6);
-							if(!isset($kept_ones2[$tag_split2[0]])) { 
-								$kept_ones2[$tag_split2[0]] = 0; 
+							$tag_strip = preg_replace('/[0-9]+/', '', $value7);
+							$tag_strip = preg_replace('/[\*]+/', '', $tag_strip);
+							$tag_strip = preg_replace('/[\+]+/', '', $tag_strip);
+							$tag_strip = preg_replace('/[\-]+/', '', $tag_strip);
+							
+							if(!isset($kept_ones2[$tag_strip])) { 
+								$kept_ones2[$tag_strip] = 0; 
 							} else {
-								$kept_ones2[$tag_split2[0]]++;
-								if(!isset($response_temp[$tag_split2[0]][$kept_ones2[$tag_split2[0]]]) && strpos($value7, '+') !== false){
-									$kept_ones2[$tag_split2[0]]--;
+								$kept_ones2[$tag_strip]++;
+								if(!isset($response_temp[$tag_strip][$kept_ones2[$tag_strip]]) && strpos($value7, '+') !== false){
+									$kept_ones2[$tag_strip]--;
 								}
 							}
 							/* Verify granting for each word of the new simple modele array */
-							$bad_connection = verify_grammar($tag_split6, $kept_ones2, $key7, $tag_split2[0], end($tag_split2), $recreate, $response_temp);
+							$bad_connection = verify_grammar($value7, $kept_ones2, $key7, $tag_strip, '', $recreate, $response_temp);
 							
 							if($bad_connection == 1) {
 								$toggle = 1;
 							}
 						}
+						
 						/* If validation has passed with all the granting and response array testing, choose this pattern */
 						
 						$detect = 0;
@@ -1387,7 +1558,6 @@
 								}
 							}
 						}
-						
 						if($toggle == 0 && $detect < 1){
 							$sentence_order = $tags_new;
 							$array_syntax[] = array('syntax' => $modele_value, 'human' => $response);
@@ -1397,10 +1567,13 @@
 					}
 				}
 			}
+			
 			if(!empty($sentence_order)){
 				//This foreach gets each response type array in each modele value
 				$sentence_order2 = preg_replace('/[0-9]+/', '', $sentence_order);
 				$sentence_order2 = preg_replace('/[\*]+/', '', $sentence_order2);
+				$sentence_order2 = preg_replace('/[\+]+/', '', $sentence_order2);
+				$sentence_order2 = preg_replace('/[\-]+/', '', $sentence_order2);
 				$o = array();
 				$storing = 0;
 				$last_check = array();
@@ -1448,7 +1621,6 @@
 							}
 						} else {
 							/* Remove optional filter from tag */
-							$tag_value = str_replace('+', '', $tag_value);
 							if(!empty($response[$tag_value])){
 								/* If response type is already stored delete first value of response type. */
 								if(in_array($tag_value, $last_check)){
