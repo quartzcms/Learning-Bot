@@ -605,11 +605,11 @@
 						'nombre' => $path_array2[$key]['nombre'],
 						'person' => '3'.$person_noun
 					), array(
-						'ortho' => 'est', 
+						'ortho' => ($person_noun == 's' ? 'est' : 'sont'), 
 						'cgram' => 'AUX',
 						'genre' => 'm',
-						'nombre' => 's',
-						'person' => '3s'
+						'nombre' => $person_noun,
+						'person' => '3'.$person_noun
 					));
 					
 					break;
