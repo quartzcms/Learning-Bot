@@ -136,6 +136,7 @@
 	$wiki_later = 0;
 	/* If google natural language is activated */
 	if($google_natural_language == 1 && isset($natural_language_question) && !empty($natural_language_question)) {
+		
 		$post_values = [
 			'text' => $natural_language_question
 		];
@@ -151,13 +152,18 @@
 		$wiki_lang = '';
 		/* Setting the language for Wikipedia query */
 		if(use_session('language')) {
-			$wiki_lang = use_session('language').'.';
+			$wiki_lang = use_session('language');
 		} else {
-			$wiki_lang = 'fr.';
+			$wiki_lang = 'fr';
 		}
 		
 		if(!empty($response)) { 
 			$result = json_decode($response, true); 
+			function sort_bigger($a,$b){
+				return strlen($a) < strlen($b);
+			}
+			usort($result,'sort_bigger');
+			
 			$description = array();
 			
 			/* Loop through all the google natural language filtered words */
@@ -167,10 +173,13 @@
 					/* Query wikipedia for the word description */
 					$endPoint = "https://".$wiki_lang.".wikipedia.org/w/api.php";
 					$params = [
-						"action" => "opensearch",
-						"search" => $result[$key],
-						"limit" => "1",
-						"namespace" => "0",
+						"action" => "query",
+						"prop" => "extracts",
+						"exlimit" => "max",
+						"explaintext" => "",
+						"exintro" => "",
+						"titles" => $result[$key],
+						"redirects" => "",
 						"format" => "json"
 					];
 
@@ -182,9 +191,17 @@
 					curl_close($ch);
 					$data = json_decode($output_wiki, true);
 					
-					if(isset($data[2][0]) && !empty($data[2][0]) && substr($data[2][0], -1) == '.') { 
+					if(isset($data['query']) && isset($data['query']['pages'])) {
+						foreach($data['query']['pages'] as $key2 => $value2){
+							if(isset($data['query']['pages'][$key2]['extract'])){
+								$extract = preg_replace('/\\([^)]*\)/', '', $data['query']['pages'][$key2]['extract']);
+								$extract = preg_replace('/\\[[^]]*\]/', '', $extract);
+								$extract = explode('. ', $extract);
+								$description[] = html_entity_decode($extract[0], ENT_QUOTES);
+								break;
+							}
+						}
 						/* Storing first description in an array */
-						$description[] = html_entity_decode($data[2][0], ENT_QUOTES);
 						break; 
 					}
 				}
@@ -304,7 +321,7 @@
 		}
 		
 		foreach($question_array as $key => $value) {
-			if(!isset($data[md5($value)])){
+			if(!isset($data[md5($value)]) && isset($question_array[$key + 1]) && isset($question_array[$key - 1])){
 				/* Query in the dictionnary */			
 				$lexique_query = mysqli_query($connexion, "SELECT id, ortho, lemme, cgram, genre, nombre, infover, LENGTH(ortho) FROM lexique WHERE ortho LIKE '%" . addslashes(mb_strtolower($value, 'UTF-8')) . "%' ORDER BY LENGTH(ortho) ASC LIMIT 1") or die (mysqli_error($connexion));
 				/* If results are found create a new array with index key the question word and all the word possibilities from database */
@@ -316,32 +333,33 @@
 			}
 		}
 		
+		
 		$array_of_syntax = array(
 			'PRO:int' => array('before' => array('ART:def', 'PRO:pos', 'PRO:per', 'PRO:per:con', 'PRO:rel', 'AUX', 'VER', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO'), 'after' => array('')),
 			'CON' => array('before' => array('CON'), 'after' => array('CON', 'PRO:rel', 'AUX', 'VER', 'ADV', 'ONO')),
 			'LIA' => array('before' => array(''), 'after' => array('')),
-			'ART:def' => array('before' => array('PRO:pos', 'PRO:per', 'PRO:per:con'), 'after' => array('PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO')),
+			'ART:def' => array('before' => array('PRO:pos', 'PRO:per:con'), 'after' => array('PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:pos', 'ADV', 'ONO')),
 			'ART:ind' => array('before' => array('ART:ind'), 'after' => array('ART:ind', 'PRO:pos', 'PRO:per', 'PRO:per:con', 'AUX', 'VER', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV')),
 			'PRE' => array('before' => array('PRE'), 'after' => array('PRE', 'PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO')),
 			'PRO:pos' => array('before' => array('PRO:pos'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per', 'PRO:per:con', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV')),
-			'PRO:per' => array('before' => array('PRO'), 'after' => array('ART:def', 'PRO:pos', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'PRO:per' => array('before' => array('NONE'), 'after' => array('ART:def', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:pos', 'ONO')),
 			'PRO:per:con' => array('before' => array('PRO:per:con'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per:con', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO')),
 			'PRO:ind' => array('before' => array('PRO:ind'), 'after' => array('PRO:pos', 'PRO:ind', 'PRO:per', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV')),
 			'PRO:rel' => array('before' => array('PRO:rel'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per:con', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos')),
-			'PRO:dem' => array('before' => array(''), 'after' => array('PRO:pos', 'PRO:per', 'PRO:per:con', 'AUX', 'VER', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
-			'AUX' => array('before' => array('NONE'), 'after' => array('PRO:rel', 'VER', 'VER:inf', 'ADJ', 'ADJ:int', 'ONO')),
-			'VER' => array('empty_after_exception_before' => array('PRO:per:con', 'PRO:per', 'PRO:dem'), 'before' => array('VER', 'AUX', 'ADJ:pos', 'PRO:pos', 'VER:past', 'ART:def', 'ART:ind', 'ADJ:ind', 'ADJ:dem'), 'after' => array('PRO:rel', 'PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'PRO:dem' => array('before' => array('PRO:dem'), 'after' => array('PRO:dem', 'PRO:pos', 'PRO:per', 'PRO:per:con', 'VER:inf', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'AUX' => array('before' => array('AUX'), 'after' => array('PRO:rel', 'VER', 'VER:inf', 'ADJ:int', 'ONO')),
+			'VER' => array('empty_after_exception_before' => array('PRO:per:con', 'PRO:per', 'PRO:dem'), 'before' => array('VER', 'AUX', 'ADJ:pos', 'PRO:pos', 'VER:past', 'ART:def', 'ART:ind', 'ADJ:ind', 'ADJ:dem'), 'after' => array('PRO:rel', 'PRE', 'PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
 			'VER:inf' => array('before' => array('PRO:ind', 'AUX', 'PRO:dem'), 'after' => array('AUX', 'PRO:per:con', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
 			'VER:past' => array('before' => array('VER:past', 'ART:def', 'ART:ind', 'PRE', 'PRO:per', 'PRO:pos', 'PRO:ind', 'PRO:dem', 'VER', 'NOM'), 'after' => array('PRO:per', 'PRO:per:con', 'PRO:rel', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
-			'ADJ' => array('before' => array('ART:ind', 'ART:def', 'ADJ:dem'), 'after' => array('NONE')),
-			'ADJ:ind' => array('before' => array(''), 'after' => array('')),
-			'ADJ:int' => array('before' => array(''), 'after' => array('')),
-			'ADJ:num' => array('before' => array(''), 'after' => array('')),
+			'ADJ' => array('before' => array('ART:ind', 'ART:def', 'ADJ:dem', 'PRO:pos'), 'after' => array('NONE')),
+			'ADJ:ind' => array('before' => array('ADJ:ind'), 'after' => array('ADJ:ind')),
+			'ADJ:int' => array('before' => array('ADJ:int'), 'after' => array('ADJ:int')),
+			'ADJ:num' => array('before' => array('NONE'), 'after' => array('VER', 'VER:inf', 'VER:past', 'AUX')),
 			'ADJ:pos' => array('before' => array('ADJ:pos'), 'after' => array('ADJ:pos')),
-			'ADJ:dem' => array('before' => array('NONE'), 'after' => array('VER')),
-			'ADV' => array('before' => array('ART:ind', 'ART:def'), 'after' => array('CON')),
+			'ADJ:dem' => array('before' => array('ADJ:dem'), 'after' => array('ADJ:dem', 'VER')),
+			'ADV' => array('before' => array('ADV', 'ART:ind', 'ART:def'), 'after' => array('ADV')),
 			'ONO' => array('before' => array('ONO'), 'after' => array('ONO')),
-			'NOM' => array('not_one_letter' => array(), 'before' => array('VER', 'AUX'), 'after' => array('VER:inf'))
+			'NOM' => array('not_one_letter' => array(), 'before' => array('NOM', 'VER', 'AUX'), 'after' => array('NOM', 'VER:inf'))
 		);
 		
 		/* Looping through all the question words again */
@@ -1231,15 +1249,15 @@
 			/* PAST PARTICIPLE */
 			/* If no verb in the sentence */
 			if(empty($response['ver'])){
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_def,art_def+,nom**1,adj+**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_ind,nom**1,adj+**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**2,art_def,nom**1,adj+**1,dot';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**1,question';
-				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,adv+,ver_past**1,art_ind,nom**1,adj+**1,dot';
-				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,question';
-				$modele[] = 'art_def,art_def+,nom|other**1,adj+**1,pro_per_con+,aux*1-2,pro_per*1,adv+,ver_past**1,question';
-				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_def,art_def+,nom|other**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**3,art_def,art_def+,nom**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**3,art_ind,nom**1,adj+**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**3,art_def,nom**1,adj+**1,dot';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**3,question';
+				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj+**1,pro_per_con+,aux*1,pro_per*1,adv+,ver_past**3,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1,adv+,ver_past**2,art_ind,nom**1,adj+**1,dot';
+				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_ind|art_def|adj_num|adj_pos,nom|other**2,adj+**1,question';
+				$modele[] = 'art_def,art_def+,nom|other**1,adj+**1,pro_per_con+,aux*1-2,pro_per*1,adv+,ver_past**3,question';
+				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_def,art_def+,nom|other**2,adj+**1,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,pro_per_con+,aux*1-2,adv+,ver_past**2,dot';
 				$modele[] = 'art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,pro_per_con+,aux*2-2,adv+,ver_past**3,dot';
 			}
@@ -1248,7 +1266,7 @@
 			$modele[] = 'adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj+,aux*1-2,ver_past**2,question';
 			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1-2,adv+,ver_past**2,art_def,art_def+,nom**1,dot';
 			$modele[] = 'art_def,art_def+,nom|other**1,adj+**1,ver_past**1,other,question';
-			$modele[] = 'adv+,ver_past,art_def,art_def+,nom|other**1,adj+**1,question';
+			$modele[] = 'adv+,ver_past,art_def,art_def+,nom|other**2,adj+**1,question';
 			$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adv+,ver_past**1,dot';
 			$modele[] = 'other,art_ind|art_def|adj_num|adj_pos,nom|other**1,adj**1,adv+,ver_past**2,dot';
 			
@@ -1256,23 +1274,23 @@
 			
 			if ($action[$rand] == 'rep') {
 				$modele[] = 'art_def|adj_num|adj_pos,other,adj+**2,ver,pro_per_con+,pro_per*1,adv+,art_def,art_def+,nom|other**1,question';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,ver|aux-2,pro_per_con+,pro_per*1,adv+,art_def,art_def+,nom**1,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux-2,pro_per_con+,pro_per*1,adv+,art_def,art_def+,nom**1,question';
-				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux-1,pro_per_con+,pro_per*1,adv+,art_ind,nom**1,adj**1,question';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,ver|aux*2-2,pro_per_con+,pro_per*1,adv+,art_def,art_def+,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1-2,pro_per_con+,pro_per*1,adv+,art_def,art_def+,nom**1,question';
+				$modele[] = 'lia|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1-1,pro_per_con+,pro_per*1,adv+,art_ind,nom**1,adj**1,question';
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver,pro_per_con+,pro_per*1,ver_inf,art_def,art_def+,nom**1,question';
 				/* If no verb in the sentence */
 				if(empty($response['ver'])){
-					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux-2,pro_per*1,adv+,art_def,art_def+,nom**1,question';
-					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux-1,pro_per*1,art_ind,nom**1,adj**1,question';
-					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux-1,pro_per*1,adj**3,question';
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1-2,pro_per*1,adv+,art_def,art_def+,nom**1,question';
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1-1,pro_per*1,art_ind,nom**1,adj**1,question';
+					$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,aux*1-1,pro_per*1,adj**3,question';
 				}
 				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver,pro_per_con+,pro_per*1,adv+,art_def|art_ind,art_def+,nom**1,adj+,question';
-				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux-2,pro_per_con+,pro_per*1,adv+,art_ind,nom**1,question';
+				$modele[] = 'lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver|aux*1-2,pro_per_con+,pro_per*1,adv+,art_ind,nom**1,question';
 			} elseif ($action[$rand] == 'sug') {
 				/* If no verb in the sentence */
 				if(empty($response['ver'])){
-					$modele[] = 'pro_per,aux*1,adv+,ver_past**2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,art_def,art_def+,nom**1,dot';
-					$modele[] = 'pro_per,pro_per_con+,aux*1,ver_past**2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,adj**1,dot';
+					$modele[] = 'pro_per,aux*1,adv+,ver_past**2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**2,adj**1,art_def,art_def+,nom**1,dot';
+					$modele[] = 'pro_per,pro_per_con+,aux*1,ver_past**2,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**2,adj**1,dot';
 				}
 				$modele[] = 'adv+,pro_per,ver**1,art_def|adj_num|adj_pos,other,adj+,art_def,art_def+,nom|other**1,dot';
 				$modele[] = 'adv+,lia|art_ind|art_def|adj_num|adj_pos|pro_ind,nom|other**1,ver**1,art_ind,nom**1,adj+**1,dot';
@@ -1287,10 +1305,10 @@
 			/* PAST PARTICIPLE */
 			/* If no verb in the sentence */
 			if(empty($response['ver'])){
-				$modele[] = 'pro_per,pro_per_con+,aux*1,ver_past**2,art_def,art_def+,nom|other**1,adj+**1,dot';
-				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_ind,nom|other**1,adj+**1,question';
+				$modele[] = 'pro_per,pro_per_con+,aux*1,ver_past**2,art_def,art_def+,nom|other**2,adj+**1,dot';
+				$modele[] = 'pro_per_con+,aux,pro_per*1,adv+,ver_past**1,art_ind,nom|other**2,adj+**1,question';
 				$modele[] = 'art_def,art_def+,nom|other**1,pro_per_con+,aux*1-2,adv+,ver_past**2,dot';
-				$modele[] = 'pro_per,pro_per_con+,aux*1,ver_past**2,art_ind,nom|other**1,adj+**1,dot';
+				$modele[] = 'pro_per,pro_per_con+,aux*1,ver_past**2,art_ind,nom|other**2,adj+**1,dot';
 				$modele[] = 'pro_per|pro_dem|pro_ind,pro_per_con+,aux*1-2,ver_past**2,dot';
 				$modele[] = 'pro_per_con+,aux,pro_per*1,ver_past**1,adv+,question';
 			}

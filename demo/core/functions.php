@@ -601,8 +601,8 @@
 					array_unshift($path_array2, array(
 						'ortho' => $pro, 
 						'cgram' => 'PRO:per',
-						'genre' => $path_array2[$key]['genre'],
-						'nombre' => $path_array2[$key]['nombre'],
+						'genre' => (!empty($path_array2[$key]['genre']) ? $path_array2[$key]['genre'] : 'm'),
+						'nombre' => (!empty($path_array2[$key]['nombre']) ? $path_array2[$key]['nombre'] : 's'),
 						'person' => '3'.$person_noun
 					), array(
 						'ortho' => ($person_noun == 's' ? 'est' : 'sont'), 
