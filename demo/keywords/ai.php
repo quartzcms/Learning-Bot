@@ -343,23 +343,23 @@
 			'PRE' => array('before' => array('PRE'), 'after' => array('PRE', 'PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO')),
 			'PRO:pos' => array('before' => array('PRO:pos'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per', 'PRO:per:con', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV')),
 			'PRO:per' => array('exception_before_ver' => array('VER:past', 'ART:def'), 'before' => array('NONE'), 'after' => array('ART:def', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:pos', 'ONO')),
-			'PRO:per:con' => array('before' => array('PRO:per:con'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per:con', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV', 'ONO')),
+			'PRO:per:con' => array('before' => array('PRO:per:con'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per:con', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
 			'PRO:ind' => array('before' => array('PRO:ind'), 'after' => array('PRO:pos', 'PRO:ind', 'PRO:per', 'VER:inf', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ADV')),
 			'PRO:rel' => array('before' => array('PRO:rel'), 'after' => array('ART:def', 'PRO:pos', 'PRO:per:con', 'PRO:rel', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos')),
 			'PRO:dem' => array('before' => array('PRO:dem'), 'after' => array('PRO:dem', 'PRO:pos', 'PRO:per', 'PRO:per:con', 'VER:inf', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
 			'AUX' => array('before' => array('AUX'), 'after' => array('PRO:rel', 'VER', 'VER:inf', 'ADJ:int', 'ONO')),
-			'VER' => array('empty_after_exception_before' => array('PRO:per:con', 'PRO:per', 'PRO:dem'), 'before' => array('VER', 'AUX', 'ADJ:pos', 'PRO:pos', 'VER:past', 'ART:def', 'ART:ind', 'ADJ:ind', 'ADJ:dem'), 'after' => array('PRO:rel', 'PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'VER' => array('empty_after_exception_before' => array('PRO:per:con', 'PRO:per', 'PRO:dem', 'PRO:rel'), 'before' => array('VER', 'AUX', 'ADJ:pos', 'PRO:pos', 'VER:past', 'ART:def', 'ART:ind', 'ADJ:ind', 'ADJ:dem'), 'after' => array('PRO:rel', 'PRO:per:con', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
 			'VER:inf' => array('before' => array('PRO:ind', 'AUX', 'PRO:dem'), 'after' => array('AUX', 'PRO:per:con', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
-			'VER:past' => array('before' => array('VER:past', 'ART:def', 'ART:ind', 'PRE', 'PRO:per', 'PRO:pos', 'PRO:ind', 'PRO:dem', 'VER', 'NOM'), 'after' => array('PRO:per', 'PRO:per:con', 'PRO:rel', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
+			'VER:past' => array('before' => array('VER:past', 'ART:def', 'ART:ind', 'PRE', 'PRO:per', 'PRO:pos', 'PRO:ind', 'PRO:dem', 'VER', 'NOM', 'ADJ:pos'), 'after' => array('PRO:per', 'PRO:per:con', 'PRO:rel', 'AUX', 'VER', 'VER:past', 'ADJ', 'ADJ:int', 'ADJ:num', 'ADJ:pos', 'ONO')),
 			'ADJ' => array('before' => array('ART:ind', 'ART:def', 'ADJ:dem', 'ADJ:ind', 'ADJ:num', 'ADJ:pos', 'ADJ:dem', 'PRO:pos', 'ADJ:int'), 'after' => array('NONE')),
 			'ADJ:ind' => array('before' => array('ADJ:ind'), 'after' => array('ADJ:ind', 'ADJ')),
 			'ADJ:int' => array('before' => array('ADJ:int'), 'after' => array('ADJ:int', 'ADJ')),
 			'ADJ:num' => array('before' => array('NONE'), 'after' => array('VER', 'VER:inf', 'VER:past', 'AUX', 'ADJ')),
 			'ADJ:pos' => array('before' => array('ADJ:pos'), 'after' => array('ADJ:pos', 'ADJ')),
 			'ADJ:dem' => array('before' => array('ADJ:dem'), 'after' => array('ADJ:dem', 'VER', 'ADJ')),
-			'ADV' => array('before' => array('ADV', 'ART:ind'), 'after' => array('ADV')),
+			'ADV' => array('before' => array('ART:ind'), 'after' => array('NONE')),
 			'ONO' => array('before' => array('ONO'), 'after' => array('ONO')),
-			'NOM' => array('not_one_letter' => array(), 'before' => array('NOM', 'VER', 'AUX'), 'after' => array('NOM', 'VER:inf'))
+			'NOM' => array('not_one_letter' => array(), 'before' => array('VER', 'AUX'), 'after' => array('VER:inf'))
 		);
 		
 		/* Looping through all the question words again */
